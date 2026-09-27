@@ -64,7 +64,8 @@ app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 app.setName('dsh-pet-electron-helper');
 
 /** DPI 探测子进程模式：不建窗口，只把主屏 scaleFactor 打到 stdout 就退出（见 probePrimaryScale） */
-const DPI_PROBE = process.env.DSH_PET_DPI_PROBE === '1';
+const DPI_PROBE = process.env.DSH_PET_DPI_PROBE === '1' || process.argv.includes('--dsh-pet-dpi-probe');
+if (DPI_PROBE && process.env.PET_TEST_DATA_DIR) app.setPath('userData', process.env.PET_TEST_DATA_DIR);
 /** 探测进程的输出标记（父进程按它抓值） */
 const DPI_MARK = 'dsh-pet-primary-scale:';
 
@@ -192,7 +193,7 @@ function probePrimaryScale() {
   };
   let out = '';
   try {
-    out = execFileSync(process.execPath, [__filename, '--dsh-pet-dpi-probe'], opts);
+    out = execFileSync(process.execPath, app.isPackaged ? ['--dsh-pet-dpi-probe'] : [__filename, '--dsh-pet-dpi-probe'], opts);
   } catch (e) {
     // 只认 stdout，不认退出码：一个不开窗口的 Electron 进程调 app.exit() 在 Windows 上
     // 偶发 0xC0000005（退出期访问违例），但那时值早就写出来了，丢掉它纯属浪费一次冷启动。
@@ -432,12 +433,14 @@ function createPetWindows() {
         preload: path.join(__dirname, 'preload.js'),
         contextIsolation: true,
         nodeIntegration: false,
-        sandbox: false,
+        sandbox: true,
         paintWhenInitiallyHidden: false,
         spellcheck: false,
       },
     });
     win.setAlwaysOnTop(true, 'floating');
+    win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+    win.webContents.on('will-navigate', event => event.preventDefault());
     win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
     // 窗口被其他窗口（另一只宠物）完全遮挡时，Chromium 默认会暂停本窗口渲染，
     // 导致大宠物移动盖过小宠物时小宠物显示为"消失"。关闭后台节流，让被遮挡

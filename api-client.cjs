@@ -2,7 +2,7 @@ const normalizeBase=(value)=>{
   const u=new URL(String(value||''));
   if(u.username||u.password||u.search||u.hash)throw new Error('API 地址不能包含密钥、参数或片段');
   if(!['https:','http:'].includes(u.protocol))throw new Error('API 地址必须使用 HTTP 或 HTTPS');
-  if(u.protocol==='http:'&&!['localhost','127.0.0.1','::1'].includes(u.hostname))throw new Error('远程 API 地址必须使用 HTTPS');
+  if(u.protocol==='http:'&&!['localhost','127.0.0.1','[::1]'].includes(u.hostname))throw new Error('远程 API 地址必须使用 HTTPS');
   return u.href.replace(/\/+$/,'');
 };
 class ApiSettings{

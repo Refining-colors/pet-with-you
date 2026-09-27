@@ -9,6 +9,23 @@ function fixture(){
   const s=Object.create(Sprite.prototype);Object.assign(s,{gen:0,front:0,anim:'idle',assetBase:'fixture/',facing:'left',videoA:video(),videoB:video(),dragState:{active:false},pet:{workStatusEnabled:true},animations:{idle:['idle'],turn:[],drag:['drag'],clicks:['click'],events:{workStatus:['thinking','working','result','waiting','success','error']}},renderBubble(){},dismissNextReply(){},stopMove(){},playIdle(){this.idleReached=true;}});
   return {s,ctx};
 }
+test('manual quota success reaches the result view without a legacy balance global',async()=>{
+  const {s,ctx}=fixture();
+  const state={ok:true,kind:'proxy',format:'monitor',rows:['Fixture quota result']};
+  Object.assign(ctx,{BALANCE_URL:'fixture-balance'});
+  s.ac=new AbortController();
+  ctx.S.fetchBalanceState=async()=>state;
+  let result,notice;
+  s.showBalanceNow=value=>{result=value;};
+  s.showBalanceNotice=value=>{notice=value;};
+  assert.equal(vm.runInContext('typeof balance',ctx),'undefined');
+  await s.showBalanceFromMenu();
+  assert.equal(notice,undefined,'successful responses must not become a network failure notice');
+  assert.equal(result,state);
+  assert.equal(ctx.window.__dshPetDebug.lastBalanceOk,true);
+  assert.equal(s.balanceRequestPending,false);
+});
+
 test('startup and idle polling never query quota, including after window recreation',async()=>{
   for(const enabled of [false,true])for(let rebuild=0;rebuild<2;rebuild++){
     const {ctx}=fixture();const requests=[],scheduled=[];

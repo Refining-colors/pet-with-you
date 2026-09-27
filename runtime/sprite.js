@@ -1191,7 +1191,7 @@ class PetSprite {
     try{
       const state=await S.fetchBalanceState(BALANCE_URL);
       if(request.dismissed||this.ac.signal.aborted)return;
-      balance=state;window.__dshPetDebug.lastBalanceOk=state.ok===true;
+      window.__dshPetDebug.lastBalanceOk=state.ok===true;
       if(state.ok)this.showBalanceNow(state);
       else this.showBalanceNotice(state);
     }catch(e){if(!request.dismissed&&!this.ac.signal.aborted)this.showBalanceNotice({ok:false,provider:'额度查询',reason:'fetch-error',message:'查询未完成，请检查网络或在设置中切换查询来源。'});}

@@ -4,7 +4,7 @@
 
 一个运行在 Windows 桌面上的动画桌宠：可以随机玩耍、手动点播、聊天与碎碎念，也可以连接 Codex 桌面客户端，展示任务进度和账户额度。
 
-> Windows 源码启动版，处于发布准备阶段。项目名称已定为 pet-with-you；由 [Refining-colors](https://github.com/Refining-colors) 维护，仓库为 [pet-with-you](https://github.com/Refining-colors/pet-with-you)；新增代码许可待确认。
+> `0.1.0-alpha.1` 本地预览版，支持 Windows x64 安装程序与源码启动。由 [Refining-colors](https://github.com/Refining-colors) 维护，仓库为 [pet-with-you](https://github.com/Refining-colors/pet-with-you)。尚未公开发布；新增代码许可证与部分字体分发授权待确认。
 
 基于 [PC2005-cloud/dsh-pet](https://github.com/PC2005-cloud/dsh-pet) 改造与扩展，保留原作角色和 106 段动画。原作代码、素材与本项目适配工作的关系见 [来源与致谢](ATTRIBUTION.md)。
 
@@ -61,12 +61,12 @@
 ### 运行环境
 
 - Windows 10 / 11。
-- Node.js 22.12 或更高版本，安装后能在终端使用 `node` 和 `npm`。
-- 首次安装需要下载 Electron 依赖。
+- 安装程序自带运行环境，纯桌宠无需额外安装 Node.js。
+- 源码启动需要 Node.js 22.12 或更高版本，首次安装需要下载 Electron 依赖。
 
-当前提供源码启动方式，尚未制作免安装程序。纯桌宠可以独立运行，不需要 Codex、Git 或密钥。初次接触 GitHub 请从 [零基础配置手册](docs/INSTALL.md) 开始。
+本地预览安装程序会询问安装目录和是否创建桌面快捷方式，尚无公开下载。构建与验证见 [预览版打包说明](docs/PACKAGING.md)。纯桌宠可以独立运行，不需要 Codex、Git 或密钥。初次接触 GitHub 请从 [零基础配置手册](docs/INSTALL.md) 开始。
 
-### 安装和启动
+### 从源码安装和启动
 
 1. 将项目源码解压到一个准备长期保留的目录。
 2. 双击 `Install-Pet.cmd` 安装依赖，等待提示完成。可双击 `Check-Setup.cmd` 检查环境。
@@ -88,7 +88,7 @@ node launch.cjs
 | `Connect-Pet.cmd` | 打开连接设置，适合先配置客户端联动 |
 | `Start-And-Connect.cmd` | 启动桌宠并准备客户端联动配置 |
 
-`launcher.vbs` 可用来创建无黑框的快捷方式。更详细的说明见 [安装与启动](docs/INSTALL.md)。
+`Install-Pet.cmd` 会询问是否创建桌面快捷方式，也可单独运行 `Create-Shortcut.cmd`；快捷方式使用与托盘相同的角色图标。移动源码目录后请重新创建。更详细的说明见 [安装与启动](docs/INSTALL.md)。
 
 ## 模式与连接
 

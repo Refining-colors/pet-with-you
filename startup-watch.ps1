@@ -13,6 +13,8 @@ try {
   if(-not $WatchOnly -and $petPrefs.autostart){Start-Pet}
   $wasRunning=$false
   while($true){
+    $petTarget=Get-Content -LiteralPath (Join-Path $DataDir 'startup-target.json') -Raw | ConvertFrom-Json
+    if(-not (Test-Path -LiteralPath $petTarget.executable)){break}
     $petPrefs=Get-Content -LiteralPath (Join-Path $DataDir 'preferences.json') -Raw | ConvertFrom-Json
     if($petPrefs.mode -ne 'connected' -or -not $petPrefs.followClientStart){break}
     $running=@(Get-Process -Name Codex,ChatGPT -ErrorAction SilentlyContinue | Where-Object {$_.MainWindowHandle -ne 0}).Count -gt 0

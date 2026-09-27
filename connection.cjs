@@ -6,7 +6,7 @@ async function inspectConnection(){
   try{
     await c.start();
     const r=await c.request('hooks/list',{cwds:[path.dirname(__dirname)]});
-    const marker=path.join(__dirname,'hook.cjs').replaceAll('\\','/');
+    const {marker}=require('./hook-command.cjs').hookCommand();
     const hooks=(r.data||[]).flatMap(d=>d.hooks||[]).filter(h=>h.command?.replaceAll('\\','/').includes(marker));
     return {installed:hooks.length,ready:hooks.length===9&&hooks.every(h=>h.enabled&&['trusted','managed'].includes(h.trustStatus)),needsReview:hooks.filter(h=>!['trusted','managed'].includes(h.trustStatus)).length,disabled:hooks.filter(h=>!h.enabled).length,errors:(r.data||[]).flatMap(d=>d.errors||[]).map(e=>e.message)};
   }finally{c.close();}

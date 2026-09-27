@@ -5,6 +5,10 @@ const {ApiSettings,ApiClient,normalizeBase}=require('../api-client.cjs');
 const {startServer}=require('../server.cjs');
 const {snapPosition}=require('../runtime/snap.js');
 const protect=v=>Buffer.from(v).toString('base64'),unprotect=v=>Buffer.from(v,'base64').toString();
+test('API allows IPv4 and IPv6 loopback HTTP but requires HTTPS for remote hosts',()=>{
+  for(const host of ['localhost','127.0.0.1','[::1]'])assert.equal(normalizeBase('http://'+host+':1234/v1/'),'http://'+host+':1234/v1');
+  for(const host of ['example.test','192.168.1.20','[2001:db8::1]'])assert.throws(()=>normalizeBase('http://'+host+'/v1'),/HTTPS/);
+});
 test('API transport uses configured endpoint and model, rejects redirects and never returns secret',async t=>{
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'pet-api-'));t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));
   const settings=new ApiSettings(dir,{protect,unprotect});settings.save({baseUrl:'https://example.test/v1',model:'custom-model',apiKey:'fixture-secret'});

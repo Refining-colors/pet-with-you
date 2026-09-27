@@ -1,6 +1,6 @@
 # 参与 pet-with-you
 
-目前处于发布准备阶段，仓库为 [Refining-colors/pet-with-you](https://github.com/Refining-colors/pet-with-you)，由 Refining-colors 维护；新增代码许可证尚待确定。提交或分发新增代码前，应先明确该部分许可；上游素材不是无限制 MIT 素材，见 [ATTRIBUTION.md](ATTRIBUTION.md)。
+目前处于发布准备阶段，仓库为 [Refining-colors/pet-with-you](https://github.com/Refining-colors/pet-with-you)，由 Refining-colors 维护；新增代码许可证尚待确定。公开提交或分发新增代码前，应先明确该部分许可；本地预览与本地 Git 提交可继续准备。上游素材不是无限制 MIT 素材，见 [ATTRIBUTION.md](ATTRIBUTION.md)。
 
 ## 开发环境
 
@@ -17,6 +17,7 @@ npm run doctor
 npm test
 npm run test:ui
 npm run check:docs
+npm run audit:source
 ```
 
 `test:ui` 创建临时数据目录，模拟聊天和额度，不调用付费模型，完成后清理临时数据。它会显示测试窗口，需要 Windows 桌面会话。`qa-output/` 保存可检查的测试截图。
@@ -34,3 +35,5 @@ npm run check:docs
 修改说明应写清解决了什么问题、最终行为和验证结果。影响使用方式时同步修改安装/使用手册；有新素材时记录来源与许可。不要提交依赖目录、个人配置、临时录制、截图中的私密任务或自己的字体文件。
 
 维护者发布前按 [发布清单](docs/RELEASE_PREPARATION.md) 检查。单元测试通过不能代替不同屏幕缩放、开机启动和真实客户端版本的人工验收。
+
+本地 Windows 安装程序的构建与验证见 [打包说明](docs/PACKAGING.md)，首次预览的检查范围及剩余限制见 [检查记录](docs/RELEASE_CHECK.md)。

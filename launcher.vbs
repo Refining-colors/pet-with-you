@@ -4,6 +4,7 @@ Set sh = CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
 root = fso.GetParentFolderName(WScript.ScriptFullName)
 nodeExe = "node.exe"
+If WScript.Arguments.Count > 1 Then nodeExe = WScript.Arguments(1)
 q = Chr(34)
 args = ""
 If WScript.Arguments.Count > 0 Then

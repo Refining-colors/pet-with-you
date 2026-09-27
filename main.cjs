@@ -33,7 +33,7 @@ if(!app.requestSingleInstanceLock()){app.quit();}else{
   const lifecycle=new (require('./client-lifecycle.cjs').ClientLifecycle)();
   function syncLifecycle(next){
     if(developmentPreview){require('./scripts/dev-env.cjs').assertDevelopmentPreferences(next);return;}
-    if(process.env.PET_INTEGRATION_VERIFY==='1'||process.env.PET_DEMO_RECORD==='1')return;
+    if(process.env.PET_TEST_DATA_DIR)return;
     const signature=JSON.stringify([next.autostart,next.mode,next.followClientStart]);
     if(signature!==startupSignature){
       require('./autostart.cjs').syncStartup({dataDir,preferences:next,executable:process.execPath,root:__dirname,packaged:app.isPackaged});
@@ -70,7 +70,7 @@ if(!app.requestSingleInstanceLock()){app.quit();}else{
   }
   function openSettings(){
     if(settings&&!settings.isDestroyed()){settings.show();settings.focus();return;}
-    settings=new BrowserWindow({width:940,height:760,title:'桌宠控制台',webPreferences:{contextIsolation:true,nodeIntegration:false,sandbox:true}});
+    settings=new BrowserWindow({width:940,height:760,title:'桌宠控制台',icon:path.join(__dirname,'tray.png'),webPreferences:{contextIsolation:true,nodeIntegration:false,sandbox:true}});
     if(developmentPreview){settings.setTitle('桌宠控制台 · 开发预览');settings.on('page-title-updated',event=>event.preventDefault());}
     const window=settings;let closeApproved=false,closing=false;
     window.on('close',event=>{
@@ -80,11 +80,12 @@ if(!app.requestSingleInstanceLock()){app.quit();}else{
       flushSettings().then(ok=>{if(ok&&!window.isDestroyed()){closeApproved=true;window.close();}}).finally(()=>{closing=false;});
     });
     settings.webContents.setWindowOpenHandler(({url})=>{if([REPOSITORY_URL,MAINTAINER_URL,UPSTREAM_URL].includes(url))shell.openExternal(url);return {action:'deny'};});
+    settings.webContents.on('will-navigate',event=>event.preventDefault());
     settings.loadURL(service.base+'/settings');
   }
   app.on('pet-open-settings',openSettings);
   app.on('pet-show-request',win=>{if(policy)policy.requestShow(win);else win.showInactive();});
-  startServer({dataDir,defaultMode:'pet',monitorSessions:process.env.PET_INTEGRATION_VERIFY!=='1'&&process.env.PET_DEMO_RECORD!=='1',
+  startServer({dataDir,defaultMode:'pet',monitorSessions:!process.env.PET_TEST_DATA_DIR,
     async onOpenThread(id){await shell.openExternal('codex://threads/'+encodeURIComponent(id));},
     async onLogsOpen(directory){const error=await shell.openPath(directory);if(error)throw new Error('无法打开日志目录');},
     async onLogsExport(content){
@@ -122,7 +123,7 @@ if(!app.requestSingleInstanceLock()){app.quit();}else{
       setTrayVisible(trayState);
       if(process.env.PET_DEMO_RECORD==='1')require('./scripts/record-demo.cjs')({service});
       if(process.env.PET_INTEGRATION_VERIFY==='1')require('./test/desktop-verify.cjs')({service,openSettings,getSettings:()=>settings,largeTrayMenu});
-      if(process.argv.includes('--settings'))openSettings();
+      if(process.argv.includes('--settings')||(app.isPackaged&&!process.argv.includes('--background')))openSettings();
       if(process.argv.includes('--connect')||process.argv.includes('--connect-only'))prepareConnection().catch(console.error);
 
     });

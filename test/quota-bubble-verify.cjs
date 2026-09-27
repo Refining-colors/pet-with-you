@@ -17,10 +17,11 @@ module.exports=async({pet,settings,service,dir})=>{
       const staysClosed=s.bubble.hidden&&!s.bubbleOn;
       window.petPreferences.quotaMode='timed';window.petPreferences.quotaSeconds=1;
       S.fetchBalanceState=async()=>state;await s.showBalanceFromMenu();
+      const successContent=s.bubble.textContent.includes('余额 12.50 元')&&!s.bubble.textContent.includes('查询未完成');
       const timedStarted=s.bubbleTimer!==null;s.bubbleHover=true;s.updateQuotaTimer();const paused=s.bubbleTimer===null;
       s.bubbleHover=false;s.updateQuotaTimer();await new Promise(r=>setTimeout(r,1150));const expired=s.bubble.hidden&&!s.explicitQuota;
       window.petPreferences.quotaMode='permanent';await s.showBalanceFromMenu();const permanent=s.bubbleTimer===null&&!s.bubble.hidden;
-      return {noFlash,canClose,loadingNoTimer,closed,staysClosed,timedStarted,paused,expired,permanent};
+      return {noFlash,canClose,loadingNoTimer,closed,staysClosed,successContent,timedStarted,paused,expired,permanent};
     }finally{S.fetchBalanceState=original;}
   })()`);
   for(const [key,value] of Object.entries(result))assert.equal(value,true,key);

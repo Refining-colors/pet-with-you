@@ -1,0 +1,16 @@
+param([string]$DestinationDirectory)
+$ErrorActionPreference = 'Stop'
+$petRoot = Split-Path -Parent $PSScriptRoot
+if (-not $DestinationDirectory) { $DestinationDirectory = [Environment]::GetFolderPath('Desktop') }
+if (-not (Test-Path -LiteralPath $DestinationDirectory -PathType Container)) { throw 'Shortcut destination does not exist.' }
+$petNode = (Get-Command node.exe -ErrorAction Stop).Source
+$petShell = New-Object -ComObject WScript.Shell
+$petLink = $petShell.CreateShortcut((Join-Path $DestinationDirectory 'pet-with-you.lnk'))
+$petLink.TargetPath = Join-Path $env:WINDIR 'System32\wscript.exe'
+$petLink.Arguments = '"' + (Join-Path $petRoot 'launcher.vbs') + '" normal "' + $petNode + '"'
+$petLink.WorkingDirectory = $petRoot
+$petLink.IconLocation = (Join-Path $petRoot 'build\icon.ico') + ',0'
+$petLink.Description = 'pet-with-you desktop companion'
+$petLink.WindowStyle = 7
+$petLink.Save()
+Write-Output 'Desktop shortcut created.'

@@ -1,0 +1,15 @@
+pet-with-you - Local preview
+
+Maintainer: Refining-colors
+Project: https://github.com/Refining-colors/pet-with-you
+Upstream: https://github.com/PC2005-cloud/dsh-pet
+
+This preview is prepared for local evaluation. The license for new project
+code has not yet been selected. Do not treat this notice as a license grant.
+
+Upstream code retains its MIT license (LICENSE.upstream). Character and
+animation assets retain the upstream noncommercial restrictions and
+attribution requirements. See ATTRIBUTION.md for details.
+
+Redistribution rights for the bundled font still need verification.
+Public distribution of this preview is not cleared yet.

@@ -10,6 +10,14 @@ module.exports=async function verify({service,openSettings,getSettings,largeTray
     service.client.start=async()=>{throw new Error('Codex must not start during independent UI test');};
     openSettings();const settings=getSettings();settings.webContents.on('console-message',(_event,_level,message)=>{if(/Uncaught/.test(message))errors.push(message);});
     await sleep(3000);
+    for(const window of [settings,pet()]){
+      const original=window.webContents.getURL(),count=BrowserWindow.getAllWindows().length;
+      assert.equal(window.webContents.getLastWebPreferences().sandbox,true);
+      await window.webContents.executeJavaScript(`window.open('about:blank'); location.assign(${JSON.stringify(service.base+'/blocked-navigation-check')}); undefined;`);
+      await sleep(150);
+      assert.equal(window.webContents.getURL(),original,'app windows reject page-initiated navigation');
+      assert.equal(BrowserWindow.getAllWindows().length,count,'app windows reject new renderer windows');
+    }
     const order=await settings.webContents.executeJavaScript(`(async()=>{const section=document.querySelector('#apiSection');await moveModule(section,-1);return modules(document.querySelector('#basicPanel')).map(e=>e.id);})()`);
     assert.deepEqual((await request('/preferences')).moduleOrder.basic,order);
     await settings.webContents.executeJavaScript(`moduleOrderLoaded=false;loadModuleOrder(${JSON.stringify({basic:[],gpt:[]})})`);

@@ -5,7 +5,8 @@
 ```text
 pet-with-you/                 # 独立源码仓库；实际路径仍可自行选择
   *.cmd / launcher.vbs       # 面向用户的安装、启动、检查和录制入口
-  main.cjs / launch.cjs       # Electron 生命周期与启动器
+  bootstrap.cjs / main.cjs / launch.cjs # 打包入口、生命周期与源码启动器
+  electron-builder.cjs / build/ # Windows 安装器配置、图标与快捷方式选项
   project.cjs                # 展示名与兼容的数据路径
   server.cjs                 # 本地带随机令牌的服务、路由与功能协调
   *-client.cjs / quota.cjs    # API、Codex、额度与流式请求
@@ -29,7 +30,7 @@ pet-with-you/                 # 独立源码仓库；实际路径仍可自行选
 
 ## 数据流
 
-1. `launch.cjs` 动态定位 Electron 和项目，启动 `main.cjs`。
+1. 源码由 `launch.cjs` 定位 Electron；打包 EXE 由 `bootstrap.cjs` 分流普通启动与屏幕缩放探测，避免探测被单实例锁拦截。
 2. `main.cjs` 建立本机服务、设置窗口、宠物窗口、托盘和系统窗口策略。
 3. 渲染器从本地服务读配置；自身负责动画播放和鼠标交互。任务记录/Hooks 经 `TaskState` 聚合后提供给渲染器。
 4. 聊天与额度服务各自封装连接和错误分类，不把密钥返回到界面。任务反馈和媒体生成不经过聊天模型。
@@ -57,5 +58,7 @@ pet-with-you/                 # 独立源码仓库；实际路径仍可自行选
 ## 验证与打包
 
 见 [贡献说明](../CONTRIBUTING.md)。源码导出使用 `export-source.cjs` 的白名单，只在准备发布时手动执行；导出前仍需检查选中的素材、文档和截图。白名单不是个人隐私检查的替代品。
+
+Windows 安装程序和升级边界见 [打包说明](PACKAGING.md)。预览使用真实资源路径供 PowerShell、命令脚本和 Hooks 调用；运行目录不保存个人配置。Hooks 在安装版通过 Electron 内置 Node 运行，源码版使用已解析的 Node 路径。
 
 下一次真正发布前，必须在全新目录进行“下载 → 安装 → 纯桌宠 → 可选连接”的完整验收，最终补齐新增代码许可证和第三方资源的分发授权。

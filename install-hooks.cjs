@@ -5,10 +5,9 @@ function installHooks(){
 const dir=process.env.CODEX_HOME||path.join(os.homedir(),'.codex');
 fs.mkdirSync(dir,{recursive:true});
 const target=path.join(dir,'hooks.json');
-const marker=path.join(__dirname,'hook.cjs').replaceAll('\\','/');
 const current=fs.existsSync(target)?JSON.parse(fs.readFileSync(target,'utf8')):{hooks:{}};
 current.hooks ||= {};
-const command='"'+require('./node-runtime.cjs').locateNode().replaceAll('\\','/')+'" "'+marker+'"';
+const {command}=require('./hook-command.cjs').hookCommand();
 const events=['UserPromptSubmit','PreToolUse','PostToolUse','PermissionRequest','PreCompact','PostCompact','Stop','Interrupt','SessionEnd'];
 const before=JSON.stringify(current);
 for(const event of events){
