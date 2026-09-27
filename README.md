@@ -4,7 +4,7 @@
 
 一个运行在 Windows 桌面上的动画桌宠：可以随机玩耍、手动点播、聊天与碎碎念，也可以连接 Codex 桌面客户端，展示任务进度和账户额度。
 
-> `0.1.0-alpha.1` 本地预览版，支持 Windows x64 安装程序与源码启动。由 [Refining-colors](https://github.com/Refining-colors) 维护，仓库为 [pet-with-you](https://github.com/Refining-colors/pet-with-you)。尚未公开发布；新增代码许可证与部分字体分发授权待确认。
+> `0.1.0-alpha.2` 本地预览版，支持 Windows x64 安装程序与源码启动。由 [Refining-colors](https://github.com/Refining-colors) 维护，仓库为 [pet-with-you](https://github.com/Refining-colors/pet-with-you)。尚未公开发布；项目代码采用 MIT，角色动画与字体按各自条款说明。
 
 基于 [PC2005-cloud/dsh-pet](https://github.com/PC2005-cloud/dsh-pet) 改造与扩展，保留原作角色和 106 段动画。原作代码、素材与本项目适配工作的关系见 [来源与致谢](ATTRIBUTION.md)。
 
@@ -45,7 +45,7 @@
 - 基础动画反馈与原生风格任务卡可分别开关；同时启用时任务卡显示在上方。
 - 多任务按优先级展示，最多列出三个任务，更多任务显示数量；已识别的对话标题可点击打开。
 - 提供“关闭事件响应”开关，演示或录屏时暂停任务动画、任务气泡、任务通知和回合结束自动额度查询。
-- 可分别选择随客户端启动、随客户端关闭，也支持开机自启动。
+- 随客户端启动使用桌面／开始菜单的联动快捷方式，无需常驻启动检测；可分别选择随客户端关闭和开机自启动。
 
 ### 额度与设置
 
@@ -54,6 +54,7 @@
 - 支持回合结束后自动查询，默认关闭；有其他任务时暂缓显示最新查询结果。启动、闲置和设置重建不会自行查询弹出额度。
 - 设置分为“基础设置”和“GPT连接设置”，同一选项卡内的模块可以拖动排序。
 - 普通设置修改后，关闭设置窗口自动保存；失败时保留窗口和未保存的内容。
+- 所有普通设置集中于 `settings.json`，设置底部可定位并分享；实际密钥单独在本机加密保存。
 - 提供错误日志、导出反馈、打开日志目录及清除日志功能。
 
 ## 快速开始
@@ -200,6 +201,6 @@ npm run check:docs
 - **本项目维护者：** [Refining-colors](https://github.com/Refining-colors)。
 - **上游代码：** MIT，保留 [原许可证](LICENSE.upstream)。
 - **上游素材：** 动画、提示词、源视频允许开源使用，禁止商用；衍生作品须按上游约定附原仓库地址。
-- **新增代码的发布许可：** 发布前由维护者确认并补充。
+- **本项目新增代码：** 使用 [MIT 许可证](LICENSE)，保留 [上游 MIT 声明](LICENSE.upstream)。
 
 完整关系与署名要求见 [ATTRIBUTION.md](ATTRIBUTION.md)。

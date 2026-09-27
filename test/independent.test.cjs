@@ -59,7 +59,7 @@ test('API profiles persist encrypted, can load and delete, and clearing current 
   settings.save({baseUrl:'https://example.test/v1',model:'fixture',apiKey:'private-fixture-key'});
   const [profile]=settings.saveProfile('Daily');assert.equal(profile.name,'Daily');
   assert.ok(!JSON.stringify(settings.profiles()).includes('private-fixture-key'));
-  assert.ok(!fs.readFileSync(settings.file+'.profiles','utf8').includes('private-fixture-key'));
+  assert.ok(!fs.readFileSync(settings.file,'utf8').includes('private-fixture-key'));
   settings.clear();const reopened=new ApiSettings(dir,{protect,unprotect});assert.deepEqual(reopened.publicValue(),{profileName:'',baseUrl:'',model:'',configured:false});
   reopened.loadProfile(profile.id);assert.equal(reopened.key(),'private-fixture-key');
   reopened.deleteProfile(profile.id);assert.deepEqual(reopened.profiles(),[]);assert.equal(reopened.publicValue().configured,true);

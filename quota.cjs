@@ -39,8 +39,8 @@ function validate(raw){
 }
 class QuotaService{
   constructor({dataDir,client,protect,unprotect,getApiKey=async()=>null,fetcher=fetch}){
-    Object.assign(this,{dataDir,client,protect,unprotect,getApiKey,fetcher});this.file=path.join(dataDir,'quota.json');
-    try{this.settings=JSON.parse(fs.readFileSync(this.file,'utf8'));}catch{this.settings={selected:'account',proxy:null};}
+    Object.assign(this,{dataDir,client,protect,unprotect,getApiKey,fetcher});this.store=new (require('./settings-store.cjs').SettingsStore)(dataDir);this.file=this.store.file;
+    this.settings=this.store.get('quota',{selected:'account',proxy:null});if(!this.store.has('quota'))this.store.set('quota',this.settings);
   }
   publicSettings(){
     const p=this.settings.proxy;let keyPreview='';
@@ -56,20 +56,20 @@ class QuotaService{
   }
   clear(){
     this.settings={...this.settings,proxy:null};
-    fs.writeFileSync(this.file+'.tmp',JSON.stringify(this.settings,null,2));fs.renameSync(this.file+'.tmp',this.file);
+    this.store.set('quota',this.settings);
     this.cache=null;this.flight=null;return this.publicSettings();
   }
   select(selected){
     if(!['account','proxy'].includes(selected))throw new Error('额度来源无效');
     if(selected==='proxy'&&!this.settings.proxy)throw new Error('请先在基础设置保存密钥查询配置');
-    const next={...this.settings,selected};fs.writeFileSync(this.file+'.tmp',JSON.stringify(next));fs.renameSync(this.file+'.tmp',this.file);
+    const next={...this.settings,selected};this.store.set('quota',next);
     this.settings=next;return this.publicSettings();
   }
   readProfiles(){
-    try{const items=JSON.parse(fs.readFileSync(this.file+'.profiles','utf8'));return Array.isArray(items)?items:[];}catch{return [];}
+    const items=this.store.get('quotaProfiles',[]);return Array.isArray(items)?items:[];
   }
   profiles(){return this.readProfiles().map(p=>({id:p.id,name:p.name,endpoint:p.proxy.endpoint,credential:p.proxy.credential,adapter:p.proxy.adapter,format:p.proxy.format,unit:p.proxy.unit,valuePath:p.proxy.valuePath,serviceName:p.proxy.name}));}
-  writeProfiles(items){fs.writeFileSync(this.file+'.profiles.tmp',JSON.stringify(items));fs.renameSync(this.file+'.profiles.tmp',this.file+'.profiles');return this.profiles();}
+  writeProfiles(items){this.store.set('quotaProfiles',items);return this.profiles();}
   saveProfile(name){
     name=String(name||'').trim().slice(0,80);if(!name)throw new Error('请填写查询配置名称');
     if(!this.settings.proxy)throw new Error('请先保存当前查询配置');
@@ -83,6 +83,7 @@ class QuotaService{
   loadProfile(id){
     const entry=this.readProfiles().find(p=>p.id===id);if(!entry)throw new Error('找不到保存的查询配置');
     const proxy={...entry.proxy};
+    if(proxy.credential==='manual'&&!proxy.secret){this.settings={selected:'proxy',proxy:validate(proxy)};this.store.set('quota',this.settings);this.cache=null;this.flight=null;return this.publicSettings();}
     if(proxy.credential==='manual'){
       proxy.key=this.unprotect?.(proxy.secret);
       if(!proxy.key)throw new Error('保存的密钥无法解密，请重新填写');
@@ -102,7 +103,7 @@ class QuotaService{
     }
     if(raw.selected==='proxy'&&!proxy)throw new Error('请先填写密钥查询接口');
     this.settings={selected:raw.selected,proxy};
-    fs.writeFileSync(this.file+'.tmp',JSON.stringify(this.settings,null,2));fs.renameSync(this.file+'.tmp',this.file);
+    this.store.set('quota',this.settings);
     this.cache=null;this.flight=null;return this.publicSettings();
   }
   async context(){

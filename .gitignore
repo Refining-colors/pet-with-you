@@ -37,6 +37,10 @@ startup-target.json
 memory.json
 
 positions.json
+settings.json
+credentials.local.json
+client-launcher.local.json
+legacy-settings/
 
 api-settings.json.profiles*
 quota.json.profiles*

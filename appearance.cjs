@@ -5,9 +5,12 @@ const {execFile}=require('node:child_process');
 class Appearance {
   constructor(dataDir){
     this.dir=path.join(dataDir,'fonts');fs.mkdirSync(this.dir,{recursive:true});
-    this.file=path.join(dataDir,'appearance.json');
-    try{this.value=JSON.parse(fs.readFileSync(this.file,'utf8'));}catch{this.value={family:'SimSun',source:'system',customFonts:[]};}
+    this.store=new (require('./settings-store.cjs').SettingsStore)(dataDir);this.file=this.store.file;
+    this.value=this.store.get('appearance',{family:'SimSun',source:'system',customFonts:[]});
     this.value.feedback ||= {family:'ShangshouSoftCandy',source:'system'};
+    this.value.customFonts=(this.value.customFonts||[]).filter(f=>/^[a-f0-9]{64}\.(ttf|otf)$/.test(f.id)&&fs.existsSync(path.join(this.dir,f.id)));
+    for(const selection of [this.value,this.value.feedback])if(selection.source==='file'&&!this.value.customFonts.some(f=>f.id===selection.family))Object.assign(selection,{family:'SimSun',source:'system'});
+    this.persist();
   }
   save(raw){
     const family=String(raw.family||'').trim();if(!family||family.length>150)throw new Error('请输入字体名称');
@@ -15,7 +18,7 @@ class Appearance {
     if(raw.source==='file'&&!this.value.customFonts.some(f=>f.id===family))throw new Error('请先导入字体文件');
     this.value=raw.target==='feedback'?{...this.value,feedback:{family,source:raw.source}}:{...this.value,family,source:raw.source};this.persist();return this.value;
   }
-  persist(){fs.writeFileSync(this.file+'.tmp',JSON.stringify(this.value,null,2));fs.renameSync(this.file+'.tmp',this.file);}
+  persist(){this.store.set('appearance',this.value);}
   importFile(filename,target='quota'){
     if(!filename)return this.value;
     const ext=path.extname(filename).toLowerCase();if(!['.ttf','.otf'].includes(ext))throw new Error('支持 TTF 或 OTF 字体');

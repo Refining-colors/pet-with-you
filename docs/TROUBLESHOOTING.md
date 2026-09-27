@@ -51,7 +51,9 @@ try {
 
 ## 目录和恢复
 
-按 `Win + R` 输入 `%APPDATA%\DSH Pet Companion` 可以打开个人数据目录。名称为升级兼容而保留。不要随意删除 `preferences.json`、`main-config.json`、密钥配置和位置文件来尝试修复，先备份。
+按 `Win + R` 输入 `%APPDATA%\DSH Pet Companion` 可以打开个人数据目录。名称为升级兼容而保留。普通设置统一为 `settings.json`，密钥在 `credentials.local.json`；旧文件会迁入 `legacy-settings/` 作为回退备份。不要为了排错直接删除它们，先备份。
+
+开启随 GPT 启动后仍未跟随：确认点击的是“GPT 联动启动”，原版客户端入口不会被拦截。旧版后台启动检测已移除，重新配置联动入口并重新固定任务栏。设置窗口仍显示旧 Electron 图标时，可取消固定旧图标，再固定新版入口；Windows 可能保留旧图标缓存。
 
 重新下载源码不会清除个人设置；如果明确要恢复全新状态，应先退出桌宠，将个人数据目录改名备份，再启动。请勿在任务进行中删除客户端的 `.codex` 目录。
 

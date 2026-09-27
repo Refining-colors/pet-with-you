@@ -1,6 +1,6 @@
 {
   "name": "pet-with-you",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "private": true,
   "main": "bootstrap.cjs",
   "scripts": {
@@ -32,5 +32,6 @@
   "homepage": "https://github.com/Refining-colors/pet-with-you",
   "bugs": {
     "url": "https://github.com/Refining-colors/pet-with-you/issues"
-  }
+  },
+  "license": "MIT"
 }

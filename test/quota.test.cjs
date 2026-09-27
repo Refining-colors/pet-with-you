@@ -24,12 +24,12 @@ test('HTML and bad numeric responses fail without leaking response or credential
 test('saved query fields and seven-character key preview persist; clear removes only query configuration',async()=>{
   const s=service(async()=>new Response(JSON.stringify({data:{balance:3}})));
   s.save({selected:'proxy',proxy:{...base,key:'preview-private-key'}});
-  s.settings=JSON.parse(fs.readFileSync(s.file,'utf8'));
+  s.settings=s.store.get('quota');
   const saved=s.publicSettings();assert.equal(saved.proxy.endpoint,base.endpoint);
   assert.equal(saved.proxy.keyPreview,'preview…');assert.ok(!JSON.stringify(saved).includes('private-key'));
   s.save({selected:'proxy',proxy:{...base,name:'Renamed'}});
   assert.equal(s.publicSettings().proxy.keyPreview,'preview…');
-  assert.equal(s.clear().proxy,null);assert.equal(JSON.parse(fs.readFileSync(s.file,'utf8')).proxy,null);
+  assert.equal(s.clear().proxy,null);assert.equal(JSON.parse(fs.readFileSync(s.file,'utf8')).sections.quota.proxy,null);
   assert.equal((await s.queryProxy()).reason,'credential-missing');
 });
 test('clearing during a pending query cannot restore stale quota cache',async()=>{
@@ -42,7 +42,7 @@ test('query profiles restore encrypted keys and fields, while clear and delete r
   const s=service(async()=>new Response(JSON.stringify({data:{balance:3}})));
   s.save({selected:'proxy',proxy:{...base,key:'profile-secret-test',totalPath:'data.total'}});
   const [entry]=s.saveProfile('Daily');s.saveProfile('Daily');assert.equal(s.profiles().length,1);
-  assert.ok(!JSON.stringify(s.profiles()).includes('secret'));assert.ok(!fs.readFileSync(s.file+'.profiles','utf8').includes('profile-secret-test'));
+  assert.ok(!JSON.stringify(s.profiles()).includes('secret'));assert.ok(!fs.readFileSync(s.file,'utf8').includes('profile-secret-test'));
   s.select('account');assert.equal(s.publicSettings().proxy.endpoint,base.endpoint);
   s.clear();assert.equal(s.profiles().length,1);
   s.loadProfile(entry.id);assert.equal(s.settings.selected,'proxy');assert.equal(await s.key(s.settings.proxy),'profile-secret-test');assert.equal(s.settings.proxy.totalPath,'data.total');

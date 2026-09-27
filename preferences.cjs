@@ -17,7 +17,7 @@ function validatePreferences(raw){
   return {disableEventResponse:raw.disableEventResponse,quotaAfterTurn:raw.quotaAfterTurn,quotaMode:raw.quotaMode,quotaSeconds:raw.quotaSeconds,whisperStreaming:raw.whisperStreaming,autoWhisperProbability:raw.autoWhisperProbability,ignoreAccountTimeouts:raw.ignoreAccountTimeouts,taskBasicFeedback:raw.taskBasicFeedback,taskNativeFeedback:raw.taskNativeFeedback,disableRoaming:raw.disableRoaming,replyMode:raw.replyMode,replySeconds:raw.replySeconds,moduleOrder,chatSource:raw.chatSource,chatSourceChosen:raw.chatSourceChosen,mode:raw.mode,alwaysOnTop:raw.alwaysOnTop,fullscreenMode:raw.fullscreenMode,clickAction:raw.clickAction,actionSpeed:raw.actionSpeed,autostart:raw.autostart,followClientStart:raw.followClientStart,followClientClose:raw.followClientClose,snapMode:raw.snapMode};
 }
 class Preferences{
-  constructor(dir,initialMode=defaults.mode){this.file=path.join(dir,'preferences.json');try{this.value=validatePreferences({...defaults,mode:initialMode,...JSON.parse(fs.readFileSync(this.file,'utf8'))});}catch{this.value={...defaults,mode:initialMode};}}
-  save(raw){const next=validatePreferences({...this.value,...raw});fs.writeFileSync(this.file+'.tmp',JSON.stringify(next,null,2));fs.renameSync(this.file+'.tmp',this.file);this.value=next;return this.value;}
+  constructor(dir,initialMode=defaults.mode){this.store=new (require('./settings-store.cjs').SettingsStore)(dir);this.file=this.store.file;this.value=validatePreferences({...defaults,mode:initialMode,...this.store.get('preferences',{})});if(!this.store.has('preferences'))this.store.set('preferences',this.value);}
+  save(raw){const next=validatePreferences({...this.value,...raw});this.store.set('preferences',next);this.value=next;return this.value;}
 }
 module.exports={Preferences,defaults,validatePreferences};

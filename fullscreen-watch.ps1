@@ -33,6 +33,7 @@ public class PetForeground {
   }
 }
 '@
+$petKnownClients=New-Object 'System.Collections.Generic.HashSet[int]'
 while($true){
   try{
     $petState=[PetForeground]::Read()|ConvertFrom-Json
@@ -41,9 +42,12 @@ while($true){
       $petName=if($petProcess){$petProcess.ProcessName}else{''}
       $petState|Add-Member -NotePropertyName process -NotePropertyValue $petName
     }
-    $petClients=@(Get-Process -Name Codex,ChatGPT -ErrorAction SilentlyContinue | Where-Object {$_.MainWindowHandle -ne 0})
+    $petProcesses=@(Get-Process -Name Codex,ChatGPT -ErrorAction SilentlyContinue)
+    $petClients=@($petProcesses | Where-Object {$_.MainWindowHandle -ne 0})
+    foreach($petClient in $petClients){$null=$petKnownClients.Add($petClient.Id)}
+    foreach($petId in @($petKnownClients)){if(-not($petProcesses | Where-Object {$_.Id -eq $petId})){$null=$petKnownClients.Remove($petId)}}
     $petWindows=@(foreach($p in $petClients){$r=[PetForeground]::Window($p.MainWindowHandle.ToInt64())|ConvertFrom-Json;if($r){$r|Add-Member -NotePropertyName id -NotePropertyValue ($p.Id.ToString()+'-'+$p.MainWindowHandle.ToString());$r}})
-    $petState|Add-Member -NotePropertyName clientRunning -NotePropertyValue ($petClients.Count -gt 0)
+    $petState|Add-Member -NotePropertyName clientRunning -NotePropertyValue ($petKnownClients.Count -gt 0)
     $petState|Add-Member -NotePropertyName clientWindows -NotePropertyValue $petWindows
     [Console]::WriteLine(($petState|ConvertTo-Json -Compress -Depth 5))
   }catch{[Console]::WriteLine('{}')}

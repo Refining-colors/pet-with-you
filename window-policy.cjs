@@ -12,7 +12,7 @@ class WindowPolicy{
     this.child=spawn('powershell.exe',['-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',path.join(__dirname,'fullscreen-watch.ps1')],{windowsHide:true,stdio:['ignore','pipe','ignore']});
     const child=this.child;
     readline.createInterface({input:child.stdout}).on('line',line=>{if(this.child!==child)return;try{const state=JSON.parse(line);if(state.pid!==process.pid)this.state=state;this.onState(state);this.apply();}catch{}});
-    const disconnected=()=>{if(this.child!==child)return;this.state={};this.apply();};
+    const disconnected=()=>{if(this.child!==child)return;this.state={};this.onState({clientRunning:null});this.apply();};
     child.on('error',disconnected);
     child.on('exit',disconnected);
     this.timer=setInterval(()=>this.apply(),650);

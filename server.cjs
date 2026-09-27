@@ -16,14 +16,15 @@ const ROOT=__dirname;
 const MIME={'.webm':'video/webm','.mov':'video/quicktime','.png':'image/png','.ttf':'font/ttf','.otf':'font/otf','.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8'};
 const readJson=(p,fallback)=>{try{return JSON.parse(fs.readFileSync(p,'utf8'));}catch{return fallback;}};
 const writeJson=(p,v)=>{fs.writeFileSync(p+'.tmp',JSON.stringify(v,null,2));fs.renameSync(p+'.tmp',p);};
-async function startServer({dataDir,defaultMode='pet',monitorSessions=false,sessionRoot,onOpenThread=async()=>{throw new Error('无法打开对话');},onChange=()=>{},onPreferences=()=>{},onNotify=()=>{},onReview=()=>{},onChooseRuntime=async()=>({canceled:true}),onTray=()=>{},onFontImport=async()=>null,onLogsOpen=async()=>{throw new Error('目录打开功能不可用');},onLogsExport=async()=>{throw new Error('日志导出功能不可用');},protect,unprotect}){
+async function startServer({dataDir,defaultMode='pet',monitorSessions=false,sessionRoot,onSettingsLocate=()=>{},onClientLauncher=async()=>({canceled:true}),onOpenThread=async()=>{throw new Error('无法打开对话');},onChange=()=>{},onPreferences=()=>{},onNotify=()=>{},onReview=()=>{},onChooseRuntime=async()=>({canceled:true}),onTray=()=>{},onFontImport=async()=>null,onLogsOpen=async()=>{throw new Error('目录打开功能不可用');},onLogsExport=async()=>{throw new Error('日志导出功能不可用');},protect,unprotect}){
   fs.mkdirSync(dataDir,{recursive:true});fs.mkdirSync(path.join(dataDir,'pet'),{recursive:true});
-  const paths={defaultFile:path.join(ROOT,'assets/config.jsonc'),userFile:path.join(dataDir,'main-config.json'),petDir:path.join(dataDir,'pet')};
+  const settingsStore=new (require('./settings-store.cjs').SettingsStore)(dataDir);
+  const paths={defaultFile:path.join(ROOT,'assets/config.jsonc'),userFile:settingsStore.file,petDir:path.join(dataDir,'pet'),settings:settingsStore};
   const {readAllConfig,flattenPetList,findPetInstance,saveUserConfig}=await import(pathToFileURL(path.join(ROOT,'config.mjs')));
-  if(!fs.existsSync(paths.userFile)){
+  if(!settingsStore.has('pet')){
     const initial=readAllConfig(paths).main;
     initial.pets.forEach(p=>{p.display='desktop';p.workStatusEnabled=true;p.whisperEnabled=false;});
-    writeJson(paths.userFile,initial);
+    settingsStore.set('pet',initial);
   }
   const diagnostics=new Diagnostics(dataDir);
   let config=readAllConfig(paths);
@@ -129,6 +130,10 @@ async function startServer({dataDir,defaultMode='pet',monitorSessions=false,sess
       if(route==='/logs/open'&&req.method==='POST'){fs.mkdirSync(diagnostics.dir,{recursive:true});await onLogsOpen(diagnostics.dir);return json({ok:true});}
       if(route==='/logs/export'&&req.method==='POST')return json(await onLogsExport(diagnostics.exportText()));
       if(route==='/'||route==='/settings')return file(path.join(ROOT,'ui'),'index.html');
+      if(route==='/settings-file'&&req.method==='GET')return json({name:'settings.json',file:settingsStore.file});
+      if(route==='/settings-file/locate'&&req.method==='POST'){await onSettingsLocate(settingsStore.file);return json({ok:true});}
+      if(route==='/client-launcher'&&req.method==='POST')return json(await onClientLauncher());
+      if(route==='/settings-file.js')return file(path.join(ROOT,'ui'),'settings-file.js');
       if(route==='/ui.js')return file(path.join(ROOT,'ui'),'ui.js');
       if(route==='/autosave.js')return file(path.join(ROOT,'ui'),'autosave.js');
       if(route==='/shared-core.js')return file(path.join(ROOT,'runtime'),'shared-core.js');
@@ -201,11 +206,11 @@ async function startServer({dataDir,defaultMode='pet',monitorSessions=false,sess
         if(req.method==='PUT'){
           const raw=await body();
           if(!Array.isArray(raw.pets)||!raw.pets.length||raw.pets.length>6||raw.pets.some(p=>!p||!Number.isFinite(p.size)||p.size<180||p.size>900))return json({error:'宠物数量 1–6，尺寸 180–900'},400);
-          const existing=readJson(paths.userFile,{});const next=saveUserConfig(raw,existing);if(!next)return json({error:'配置不合法'},400);
+          const existing=settingsStore.get('pet',{});const next=saveUserConfig(raw,existing);if(!next)return json({error:'配置不合法'},400);
           if(new Set(next.pets.map(p=>p.id)).size!==next.pets.length)return json({error:'宠物 ID 不能重复'},400);
           for(const key of ['physics','animationWeights','animations','eventsRefreshSec','whisperPrompt','chatMemoryRounds','memes'])if(raw[key]!==undefined)next[key]=raw[key];
-          writeJson(paths.userFile,next);
-          try{config=readAllConfig(paths);}catch(e){writeJson(paths.userFile,existing);throw e;}
+          settingsStore.set('pet',next);
+          try{config=readAllConfig(paths);}catch(e){settingsStore.set('pet',existing);throw e;}
           onChange(config);return json(config);
         }
         return json(config);

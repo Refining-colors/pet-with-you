@@ -51,6 +51,6 @@ test('chat, whisper, quota and configuration failures have IDs; log routes expor
   const summary=await req('/logs');assert.equal(summary.count,4);
   await req('/logs/open','POST');assert.equal(opened,path.join(dir,'logs'));
   await req('/logs/export','POST');assert.equal(JSON.parse(exported).errors.length,4);assert.ok(!/private-key|private-prompt/.test(exported));
-  const before=fs.readFileSync(path.join(dir,'api-settings.json'),'utf8');
-  assert.equal((await req('/logs','DELETE')).count,0);assert.equal(fs.readFileSync(path.join(dir,'api-settings.json'),'utf8'),before);
+  const before=fs.readFileSync(path.join(dir,'settings.json'),'utf8');
+  assert.equal((await req('/logs','DELETE')).count,0);assert.equal(fs.readFileSync(path.join(dir,'settings.json'),'utf8'),before);
 });

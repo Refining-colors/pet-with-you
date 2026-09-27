@@ -1,6 +1,8 @@
 const { app, Tray, nativeImage, BrowserWindow, Notification, shell, safeStorage, dialog } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
+const nodeArgument=process.argv.find(value=>value.startsWith('--pet-node-exe='));
+if(!app.isPackaged&&nodeArgument)process.env.PET_NODE_EXE=nodeArgument.slice('--pet-node-exe='.length);
 const { startServer } = require('./server.cjs');
 const {WindowPolicy}=require('./window-policy.cjs');
 const developmentPreview=process.env.PET_DEV_MODE==='1';
@@ -17,12 +19,15 @@ process.env.DSH_PET_STANDALONE='1';
 delete process.env.DSH_PET_HOST_PID;
 const { PRODUCT_NAME, MAINTAINER, REPOSITORY_URL, MAINTAINER_URL, UPSTREAM_URL, dataDirectory } = require('./project.cjs');
 app.setName(PRODUCT_NAME);
+const appId='im.refiningcolors.petwithyou'+(developmentPreview?'.dev':'');
+if(process.platform==='win32')app.setAppUserModelId(appId);
 const dataDir=dataDirectory(app.getPath('appData'));
 app.setPath('userData',dataDir);
 app.disableHardwareAcceleration();
 if(!app.requestSingleInstanceLock()){app.quit();}else{
+  const settingsStore=new (require('./settings-store.cjs').SettingsStore)(dataDir);
   let service,tray,settings,policy,runtimeStarted=false,trayVisible=true;
-  let startupSignature='',quitApproved=false,quitSaving=false;
+  let startupSignature='',quitApproved=false,quitSaving=false,lastClientRunning=null;
   async function flushSettings(){
     if(!settings||settings.isDestroyed())return true;
     if(settings.webContents.isLoadingMainFrame())await new Promise(resolve=>settings.webContents.once('did-stop-loading',resolve));
@@ -58,7 +63,7 @@ if(!app.requestSingleInstanceLock()){app.quit();}else{
   const largeTrayMenu=new (require('./tray-menu.cjs').TrayMenu)({dataDir,getItems:trayItems});
   function setTrayVisible(value){
     trayVisible=value;
-    try{fs.writeFileSync(path.join(dataDir,'tray-state.json'),JSON.stringify({visible:value}));}catch{}
+    settingsStore.set('tray',{visible:value});
     if(value){if(!tray||tray.isDestroyed()){tray=new Tray(nativeImage.createFromPath(path.join(__dirname,'tray.png')).resize({width:24,height:24}));tray.on('double-click',openSettings);tray.on('right-click',()=>largeTrayMenu.show());}tray.setToolTip(PRODUCT_NAME+(developmentPreview?' · 开发预览':'')+' · 随机播放 / 右键点播');}
     else if(tray&&!tray.isDestroyed()){tray.destroy();tray=null;}
   }
@@ -70,7 +75,9 @@ if(!app.requestSingleInstanceLock()){app.quit();}else{
   }
   function openSettings(){
     if(settings&&!settings.isDestroyed()){settings.show();settings.focus();return;}
-    settings=new BrowserWindow({width:940,height:760,title:'桌宠控制台',icon:path.join(__dirname,'tray.png'),webPreferences:{contextIsolation:true,nodeIntegration:false,sandbox:true}});
+    const appIcon=path.join(__dirname,'build','icon.ico');
+    settings=new BrowserWindow({width:940,height:760,title:'桌宠控制台',icon:appIcon,webPreferences:{contextIsolation:true,nodeIntegration:false,sandbox:true}});
+    if(process.platform==='win32')settings.setAppDetails({appId,appIconPath:appIcon,appIconIndex:0,relaunchDisplayName:PRODUCT_NAME,relaunchCommand:'"'+process.execPath+'" '+(app.isPackaged?'':'"'+__dirname+'" ')+'--settings'});
     if(developmentPreview){settings.setTitle('桌宠控制台 · 开发预览');settings.on('page-title-updated',event=>event.preventDefault());}
     const window=settings;let closeApproved=false,closing=false;
     window.on('close',event=>{
@@ -86,6 +93,17 @@ if(!app.requestSingleInstanceLock()){app.quit();}else{
   app.on('pet-open-settings',openSettings);
   app.on('pet-show-request',win=>{if(policy)policy.requestShow(win);else win.showInactive();});
   startServer({dataDir,defaultMode:'pet',monitorSessions:!process.env.PET_TEST_DATA_DIR,
+    onSettingsLocate(file){if(!process.env.PET_TEST_DATA_DIR)shell.showItemInFolder(file);},
+    async onClientLauncher(){
+      if(developmentPreview||process.env.PET_TEST_DATA_DIR)throw new Error('隔离预览不修改真实客户端启动入口，请在正式运行版本中配置。');
+      const launcher=require('./client-launcher.cjs'),targets=launcher.discoverClients();
+      const labels=targets.map(target=>target.name+'（系统应用）');
+      const choice=await dialog.showMessageBox(settings,{title:'配置 GPT 联动启动入口',message:'选择平时使用的 GPT / Codex 桌面客户端',detail:'创建桌面与开始菜单的“GPT 联动启动”快捷方式。不会替换原版客户端程序；任务栏请固定新入口。',buttons:[...labels,'选择其他程序或原始快捷方式','取消'],cancelId:labels.length+1});
+      if(choice.response===labels.length+1)return {canceled:true};
+      let target=targets[choice.response];
+      if(!target){const selected=await dialog.showOpenDialog(settings,{title:'选择客户端原始启动程序或快捷方式（不是 codex.exe 命令行）',properties:['openFile'],filters:[{name:'应用或快捷方式',extensions:['exe','lnk']}]});if(selected.canceled)return {canceled:true};target={kind:'file',file:selected.filePaths[0]};}
+      return launcher.createClientLaunchers({dataDir,root:__dirname,executable:process.execPath,packaged:app.isPackaged,target});
+    },
     async onOpenThread(id){await shell.openExternal('codex://threads/'+encodeURIComponent(id));},
     async onLogsOpen(directory){const error=await shell.openPath(directory);if(error)throw new Error('无法打开日志目录');},
     async onLogsExport(content){
@@ -111,15 +129,16 @@ if(!app.requestSingleInstanceLock()){app.quit();}else{
     require('./runtime/main.js');
     app.whenReady().then(()=>{
       policy=new WindowPolicy({getWindows:()=>BrowserWindow.getAllWindows().filter(w=>w!==settings&&!w.isPetTrayMenu),getPreferences:()=>service.preferences.value,onState:state=>{
+        lastClientRunning=typeof state.clientRunning==='boolean'?state.clientRunning:null;
         if(typeof state.clientRunning==='boolean'){
           require('./runtime/main.js').setSnapTarget(state.clientWindows||[]);
           const p=service.preferences.value;
-          if(lifecycle.update(p,state.clientRunning))app.quit();
+          if(lifecycle.update(p,state.clientRunning))lifecycle.confirmClose({flush:flushSettings,getPreferences:()=>service.preferences.value,getRunning:()=>lastClientRunning}).then(close=>{if(close)app.quit();}).catch(()=>{});
         }
       }});
       if(process.env.PET_DEMO_RECORD!=='1')policy.start();
       syncLifecycle(service.preferences.value);
-      let trayState=true;try{trayState=JSON.parse(fs.readFileSync(path.join(dataDir,'tray-state.json'),'utf8')).visible!==false;}catch{}
+      const trayState=settingsStore.get('tray',{visible:true}).visible!==false;
       setTrayVisible(trayState);
       if(process.env.PET_DEMO_RECORD==='1')require('./scripts/record-demo.cjs')({service});
       if(process.env.PET_INTEGRATION_VERIFY==='1')require('./test/desktop-verify.cjs')({service,openSettings,getSettings:()=>settings,largeTrayMenu});

@@ -10,6 +10,21 @@ module.exports=async function verify({service,openSettings,getSettings,largeTray
     service.client.start=async()=>{throw new Error('Codex must not start during independent UI test');};
     openSettings();const settings=getSettings();settings.webContents.on('console-message',(_event,_level,message)=>{if(/Uncaught/.test(message))errors.push(message);});
     await sleep(3000);
+    assert.equal(await settings.webContents.executeJavaScript(`document.querySelector('#settingsFileSection').nextElementSibling.tagName`),'FOOTER');
+    assert.equal(await settings.webContents.executeJavaScript(`document.querySelector('#locateSettingsFile').textContent.includes('定位')`),true);
+    await settings.webContents.executeJavaScript(`document.querySelector('#quotaSeconds').value='17';document.querySelector('#quotaSeconds').dispatchEvent(new Event('input',{bubbles:true}));document.querySelector('#locateSettingsFile').click();`);
+    for(let i=0;i<50;i++){if((await request('/preferences')).quotaSeconds===17)break;await sleep(100);}
+    assert.equal((await request('/preferences')).quotaSeconds,17,'locate button flushes settings without waiting on itself');
+    if(process.platform==='win32'){
+      const handle=settings.getNativeWindowHandle().readBigUInt64LE().toString();
+      const iconFile=path.join(__dirname,'..','qa-output','settings-native-icon.png');
+      const command=`Add-Type -AssemblyName System.Drawing; Add-Type -TypeDefinition 'using System;using System.Runtime.InteropServices;public class PetIconCheck{[DllImport("user32.dll")] public static extern IntPtr SendMessage(IntPtr h,uint m,IntPtr w,IntPtr l);}'; $h=[PetIconCheck]::SendMessage([IntPtr]${handle},127,[IntPtr]1,[IntPtr]::Zero);if($h -eq [IntPtr]::Zero){throw 'Missing native window icon'};$icon=[Drawing.Icon]::FromHandle($h);$bitmap=$icon.ToBitmap();$bitmap.Save('${iconFile.replaceAll("'","''")}',[Drawing.Imaging.ImageFormat]::Png);$bitmap.Dispose()`;
+      await require('node:util').promisify(require('node:child_process').execFile)('powershell.exe',['-NoProfile','-NonInteractive','-Command',command],{windowsHide:true,timeout:10000});
+    }
+    await settings.webContents.executeJavaScript(`document.querySelector('#followClientClose').checked=true;document.querySelector('#followClientClose').dispatchEvent(new Event('change',{bubbles:true}));`);
+    await sleep(200);assert.equal((await request('/preferences')).followClientClose,true);
+    await settings.webContents.executeJavaScript(`document.querySelector('#followClientClose').checked=false;document.querySelector('#followClientClose').dispatchEvent(new Event('change',{bubbles:true}));`);
+    await sleep(200);assert.equal((await request('/preferences')).followClientClose,false);
     for(const window of [settings,pet()]){
       const original=window.webContents.getURL(),count=BrowserWindow.getAllWindows().length;
       assert.equal(window.webContents.getLastWebPreferences().sandbox,true);

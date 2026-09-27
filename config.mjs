@@ -389,15 +389,16 @@ export function readAllConfig(paths             )                               
   const out                                          = {};
 
   // main 条目：内置默认 ← main-config.json（可编辑层）
-  const mainOverlay = readJsonc(paths.userFile);
-  if (existsSync(paths.userFile) && !mainOverlay) {
+  const mainOverlay = paths.settings ? paths.settings.get('pet', null) : readJsonc(paths.userFile);
+  if (!paths.settings && existsSync(paths.userFile) && !mainOverlay) {
     warnOnce('file:' + paths.userFile, '用户主配置解析失败，已按无用户配置处理：' + paths.userFile);
   }
   out.main = mergeEntry(base, mainOverlay, 'main-config.json', basePets, seenIds);
 
   // 文件宠物条目：pet/<名>-config.json，一个文件一个条目（key = 文件名前缀 = 素材根）
-  for (const file of scanPetFiles(paths.petDir)) {
-    const parsed = readJsonc(file.path);
+  const petFiles = paths.settings ? Object.entries(paths.settings.get('petEntries', {})).map(([prefix, value]) => ({prefix, value})) : scanPetFiles(paths.petDir);
+  for (const file of petFiles) {
+    const parsed = paths.settings ? file.value : readJsonc(file.path);
     if (!parsed) {
       warnOnce('file:' + file.path, '文件宠物配置解析失败，已跳过：' + file.path);
       continue;

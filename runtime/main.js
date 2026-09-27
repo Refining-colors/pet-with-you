@@ -266,7 +266,7 @@ if (BRIDGE) {
 
 /** 窗口表：petId -> BrowserWindow */
 const windows = new Map();
-const positions=new (require('../positions.cjs').Positions)(app.getPath('userData'));
+const positions=DPI_PROBE?{flush(){}}:new (require('../positions.cjs').Positions)(app.getPath('userData'));
 app.on('before-quit',()=>positions.flush());
 
 /** win.id -> 上一次**请求**的内容区矩形（"x,y,w,h"）：pet:set-bounds 的去重基准，见那里的注释 */

@@ -13,7 +13,7 @@ function walk(directory) {
   }
 }
 for (const directory of directories) walk(directory);
-const forbidden = /(^|\/)(?:\.local|\.npm-cache|node_modules|qa-output|media-output|dist|release)(?:\/|$)|(?:^|\/)(?:auth\.json|config\.toml|connection\.json|memory\.json|preferences\.json|api-settings\.json(?:\.profiles.*)?|quota\.json(?:\.profiles.*)?|\.env(?:\..*)?)$/i;
+const forbidden = /(^|\/)(?:\.local|\.npm-cache|node_modules|qa-output|media-output|dist|release|legacy-settings)(?:\/|$)|(?:^|\/)(?:settings\.json|credentials\.local\.json|client-launcher\.local\.json|auth\.json|config\.toml|connection\.json|memory\.json|preferences\.json|api-settings\.json(?:\.profiles.*)?|quota\.json(?:\.profiles.*)?|\.env(?:\..*)?)$/i;
 const patterns = [
   ['private-key', /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/],
   ['access-token', /\b(?:github_pat_[A-Za-z0-9_]{30,}|gh[pousr]_[A-Za-z0-9]{30,}|sk-[A-Za-z0-9_-]{32,})\b/],

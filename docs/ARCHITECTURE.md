@@ -12,9 +12,12 @@ pet-with-you/                 # 独立源码仓库；实际路径仍可自行选
   *-client.cjs / quota.cjs    # API、Codex、额度与流式请求
   state.cjs / session-monitor.cjs / hook.cjs
                              # 多任务聚合、本地记录与 Hook 事件
+  settings-store.cjs         # 统一 settings.json、旧配置迁移与本机密钥分离
   preferences.cjs / appearance.cjs / positions.cjs
                              # 设置、字体和位置持久化
-  autostart.cjs / *-watch.ps1 # 当前用户自启动与窗口检测
+  autostart.cjs / startup-watch.ps1 # 登录时一次性启动，保留旧文件名兼容
+  client-launcher*.cjs / launch-detached.ps1 # 无常驻联动入口、Explorer 独立启动
+  fullscreen-watch.ps1       # 桌宠运行期间的窗口策略与退出检测
   runtime/                   # 宠物窗口、动画、鼠标与反馈气泡
   ui/                        # 设置界面、自动保存与模块排序
   assets/                    # 默认配置、106 段动画与配套资源
@@ -61,4 +64,4 @@ pet-with-you/                 # 独立源码仓库；实际路径仍可自行选
 
 Windows 安装程序和升级边界见 [打包说明](PACKAGING.md)。预览使用真实资源路径供 PowerShell、命令脚本和 Hooks 调用；运行目录不保存个人配置。Hooks 在安装版通过 Electron 内置 Node 运行，源码版使用已解析的 Node 路径。
 
-下一次真正发布前，必须在全新目录进行“下载 → 安装 → 纯桌宠 → 可选连接”的完整验收，最终补齐新增代码许可证和第三方资源的分发授权。
+下一次真正发布前，必须在全新目录进行“下载 → 安装 → 纯桌宠 → 可选连接”的完整验收，核对第三方资源的分发范围；代码已采用 MIT。

@@ -11,6 +11,7 @@ If WScript.Arguments.Count > 0 Then
   mode = WScript.Arguments(0)
   If mode = "connect" Then args = " --connect-only"
   If mode = "both" Then args = " --connect"
+  If mode = "client" Then args = " --launch-client"
 End If
 sh.CurrentDirectory = root
 sh.Run q & nodeExe & q & " " & q & root & "\launch.cjs" & q & args, 0, False

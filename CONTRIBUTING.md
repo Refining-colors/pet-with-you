@@ -1,6 +1,6 @@
 # 参与 pet-with-you
 
-目前处于发布准备阶段，仓库为 [Refining-colors/pet-with-you](https://github.com/Refining-colors/pet-with-you)，由 Refining-colors 维护；新增代码许可证尚待确定。公开提交或分发新增代码前，应先明确该部分许可；本地预览与本地 Git 提交可继续准备。上游素材不是无限制 MIT 素材，见 [ATTRIBUTION.md](ATTRIBUTION.md)。
+目前处于发布准备阶段，仓库为 [Refining-colors/pet-with-you](https://github.com/Refining-colors/pet-with-you)，由 Refining-colors 维护；新增代码采用 [MIT 许可证](LICENSE)。上游素材不是无限制 MIT 素材，见 [ATTRIBUTION.md](ATTRIBUTION.md)。
 
 ## 开发环境
 

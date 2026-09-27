@@ -34,6 +34,9 @@ async function run(program, args, options = {}, input) {
     assert.ok(connection, 'packaged app starts its isolated service');
     const health = await fetch(connection.base + '/health').then(r => r.json());
     assert.equal(health.mode, 'pet'); assert.equal(health.apiConfigured, false); assert.equal(health.animations, 106);
+    const unified = JSON.parse(fs.readFileSync(path.join(data, 'settings.json')));
+    assert.equal(unified.schemaVersion, 1); assert.equal(unified.sections.preferences.mode, 'pet');
+    for (const old of ['preferences.json','main-config.json','api-settings.json','quota.json','appearance.json']) assert.equal(fs.existsSync(path.join(data,old)),false);
     const config = await fetch(connection.base + '/config').then(r => r.json());
     assert.ok(Object.values(config).flatMap(c => c.pets).every(p => p.whisperEnabled === false));
     const asset = fs.readdirSync(path.join(root, 'assets/webm'))[0];
@@ -43,6 +46,18 @@ async function run(program, args, options = {}, input) {
     assert.ok(fs.existsSync(path.join(data, 'primary-scale.json')), 'DPI probe persists without a second-instance collision');
     assert.equal(fs.existsSync(path.join(data, 'startup-target.json')), false, 'test run leaves Startup untouched');
     child.kill(); await closed; child = null;
+    const clientMarker = path.join(data, 'fixture-client-started');
+    const fixtureClient = path.join(data, 'FixtureClient.exe');
+    const csharp = 'public class FixtureClient { public static void Main() { System.IO.File.WriteAllText(' + JSON.stringify(clientMarker) + ', "started"); } }';
+    const psLiteral = value => "'" + value.replaceAll("'", "''") + "'";
+    await run('powershell.exe', ['-NoProfile','-NonInteractive','-Command','Add-Type -TypeDefinition '+psLiteral(csharp)+' -OutputAssembly '+psLiteral(fixtureClient)+' -OutputType WindowsApplication']);
+    fs.writeFileSync(path.join(data, 'client-launcher.local.json'), JSON.stringify({kind:'file',file:fixtureClient}));
+    const launchSettings = JSON.parse(fs.readFileSync(path.join(data,'settings.json')));
+    launchSettings.sections.preferences.mode='connected';launchSettings.sections.preferences.followClientStart=false;
+    fs.writeFileSync(path.join(data,'settings.json'),JSON.stringify(launchSettings));
+    await run(executable,['--launch-client']);
+    for(let i=0;i<50&&!fs.existsSync(clientMarker);i++)await delay(100);
+    assert.ok(fs.existsSync(clientMarker),'packaged joint launcher starts only the fixture client when pet following is off');
     let event;
     mock = http.createServer(async (req, res) => { let body = ''; for await (const bytes of req) body += bytes; event = JSON.parse(body); res.end('{}'); });
     await new Promise(resolve => mock.listen(0, '127.0.0.1', resolve));
@@ -61,7 +76,7 @@ async function run(program, args, options = {}, input) {
     assert.equal(commands.filter(c => c.endsWith('/hook.cmd"')).length, 9);
     await run(executable, [path.join(root, 'uninstall-hooks.cjs')], nodeMode);
     assert.deepEqual(JSON.parse(fs.readFileSync(hooksFile)), { hooks: { Stop: [unrelated] } });
-    console.log('PASS: packaged startup, defaults, 106 animations, byte ranges, DPI probe, no external Node on PATH, hook delivery/install/removal and metadata privacy.');
+    console.log('PASS: unified settings, packaged startup, 106 animations, DPI, joint launcher, no external Node, hooks and metadata privacy.');
   } finally {
     if (child) { child.kill(); await closed; }
     if (mock) await new Promise(resolve => mock.close(resolve));

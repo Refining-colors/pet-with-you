@@ -8,8 +8,12 @@ if (-not $Installer) {
 $Installer = (Resolve-Path -LiteralPath $Installer).Path
 $petDesktop = Join-Path ([Environment]::GetFolderPath('Desktop')) 'pet-with-you.lnk'
 $petMenu = Join-Path ([Environment]::GetFolderPath('Programs')) 'pet-with-you.lnk'
+$petJointName='GPT '+[char]0x8054+[char]0x52A8+[char]0x542F+[char]0x52A8+'.lnk'
+$petJointDesktop=Join-Path ([Environment]::GetFolderPath('Desktop')) $petJointName
+$petJointMenu=Join-Path ([Environment]::GetFolderPath('Programs')) $petJointName
 $petExisting = Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*' -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -eq 'pet-with-you' }
 if ($petExisting -or (Test-Path -LiteralPath $petDesktop) -or (Test-Path -LiteralPath $petMenu)) { throw 'An existing installation or shortcut exists; use a clean Windows account for this test.' }
+if((Test-Path -LiteralPath $petJointDesktop) -or (Test-Path -LiteralPath $petJointMenu)){throw 'Joint launcher already exists; use a clean Windows account for this test.'}
 $petTempBase = [IO.Path]::GetFullPath([IO.Path]::GetTempPath())
 $petTemp = Join-Path $petTempBase ('pet installer check ' + [Guid]::NewGuid().ToString('N'))
 $petInstall = Join-Path $petTemp 'installed app'
@@ -48,6 +52,9 @@ try {
     & node (Join-Path $PSScriptRoot 'verify-packaged.cjs') $petExe
     if ($LASTEXITCODE -ne 0) { throw 'Installed application smoke test failed.' }
     $petHooksPath = Join-Path $env:CODEX_HOME 'hooks.json'
+    foreach($petJointFile in @($petJointDesktop,$petJointMenu)){
+      $petJoint=$petShell.CreateShortcut($petJointFile);$petJoint.TargetPath=$petExe;$petJoint.Arguments='--launch-client';$petJoint.Save()
+    }
     $petHookCommand = '"' + (Join-Path $petInstall 'resources\app\hook.cmd').Replace('\', '/') + '"'
     $petHooks = @{ hooks = @{ Stop = @(@{ hooks = @(@{type='command'; command=$petHookCommand}, @{type='command'; command='echo fixture-unrelated'}) }) } } | ConvertTo-Json -Depth 8
     Set-Content -LiteralPath $petHooksPath -Value $petHooks -Encoding Ascii
@@ -60,6 +67,7 @@ try {
     $petRemaining = Get-Content -LiteralPath $petHooksPath -Raw | ConvertFrom-Json
     if (@($petRemaining.hooks.Stop[0].hooks).Count -ne 1 -or $petRemaining.hooks.Stop[0].hooks[0].command -ne 'echo fixture-unrelated') { throw 'Uninstaller did not remove only its own Hooks.' }
     if ((Test-Path -LiteralPath $petDesktop) -or (Test-Path -LiteralPath $petMenu)) { throw 'Uninstaller left its shortcut behind.' }
+    if((Test-Path -LiteralPath $petJointDesktop) -or (Test-Path -LiteralPath $petJointMenu)){throw 'Uninstaller left its joint launcher behind.'}
     if (-not (Test-Path -LiteralPath (Join-Path $petData 'retain.txt'))) { throw 'Uninstaller removed user data.' }
     Write-Output "PASS: installed app, desktop shortcut=$petShortcut, Start Menu icon, uninstall, retained user data."
   }

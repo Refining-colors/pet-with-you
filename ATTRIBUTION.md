@@ -17,7 +17,7 @@ pet-with-you 是在 [PC2005-cloud/dsh-pet](https://github.com/PC2005-cloud/dsh-p
 
 上游代码采用 MIT 许可，原始版权声明和许可正文保存在 [LICENSE.upstream](LICENSE.upstream)。发布包含上游代码的副本时，应继续附带该文件。
 
-本项目新增代码的正式发布许可，待维护者确认后补充；本说明不替代正式许可证。
+本项目新增代码同样采用 MIT 许可，正文见 [LICENSE](LICENSE)，版权归 Refining-colors；沿用代码继续保留上游版权声明。MIT 的代码许可不改变角色、动画及字体的素材许可。
 
 ## 素材与二创约定
 

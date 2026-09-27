@@ -7,7 +7,8 @@ Read README.md and docs/ARCHITECTURE.md before code changes. For installation, r
 ## Runtime and privacy
 
 - Windows desktop application. Install with npm ci; Node.js >=22.12 is required.
-- Keep the legacy data directory and Startup shortcut compatible. project.cjs owns the data directory choice.
+- Keep the legacy data directory and Startup shortcut compatible. project.cjs owns the data directory choice. settings-store.cjs owns settings.json and migration; secrets stay in credentials.local.json.
+- Client-start integration uses explicit joint shortcuts; do not restore a persistent startup watcher. Check latest preferences before client-triggered exit.
 - Do not read or print live keys, auth.json, connection.json, private session contents, or the complete user config. Ask users to enter secrets through Settings.
 - Use npm test and npm run test:ui. The UI runner uses temporary data and mocked providers. Do not run model calls or alter the live Codex installation for tests.
 - Restart only the verified pet process, after checking no pet chat request is pending; never stop the user's Codex client.
@@ -26,5 +27,5 @@ Read README.md and docs/ARCHITECTURE.md before code changes. For installation, r
 - Root launchers are public entry points. Keep root services, runtime/, ui/, scripts/, test/, docs/ responsibilities clear.
 - Generated files go to qa-output/ or media-output/. Neither belongs in source releases except explicitly selected safe docs images.
 - Keep upstream copyright/license and attribution. Original character assets remain noncommercial; extracting or recording them does not make them original.
-- The maintainer is Refining-colors and the repository is https://github.com/Refining-colors/pet-with-you. The new code license is not finalized; do not claim the whole repository is unrestricted MIT.
+- The maintainer is Refining-colors and the repository is https://github.com/Refining-colors/pet-with-you. Project code uses MIT; keep LICENSE.upstream and do not claim character assets or fonts are unrestricted MIT.
 - Update user documentation and meaningful regression tests for behavior changes. Use npm run check:docs for local file links.

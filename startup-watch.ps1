@@ -1,25 +1,12 @@
 param([Parameter(Mandatory=$true)][string]$DataDir,[switch]$WatchOnly)
 $ErrorActionPreference='Stop'
-$petMutex=New-Object System.Threading.Mutex($false,'Local\DSHPetStartupWatcher')
-if(-not $petMutex.WaitOne(0)){exit}
-function Start-Pet {
-  $target=Get-Content -LiteralPath (Join-Path $DataDir 'startup-target.json') -Raw | ConvertFrom-Json
-  if(-not (Test-Path -LiteralPath $target.executable)){return}
-  $petArgs=if($target.packaged){'--background'}else{'"'+$target.root+'" --background'}
-  Start-Process -FilePath $target.executable -ArgumentList $petArgs -WorkingDirectory $target.root -WindowStyle Hidden
-}
-try {
-  $petPrefs=Get-Content -LiteralPath (Join-Path $DataDir 'preferences.json') -Raw | ConvertFrom-Json
-  if(-not $WatchOnly -and $petPrefs.autostart){Start-Pet}
-  $wasRunning=$false
-  while($true){
-    $petTarget=Get-Content -LiteralPath (Join-Path $DataDir 'startup-target.json') -Raw | ConvertFrom-Json
-    if(-not (Test-Path -LiteralPath $petTarget.executable)){break}
-    $petPrefs=Get-Content -LiteralPath (Join-Path $DataDir 'preferences.json') -Raw | ConvertFrom-Json
-    if($petPrefs.mode -ne 'connected' -or -not $petPrefs.followClientStart){break}
-    $running=@(Get-Process -Name Codex,ChatGPT -ErrorAction SilentlyContinue | Where-Object {$_.MainWindowHandle -ne 0}).Count -gt 0
-    if($running -and -not $wasRunning){Start-Pet}
-    $wasRunning=$running
-    Start-Sleep -Seconds 3
-  }
-} finally {$petMutex.ReleaseMutex();$petMutex.Dispose()}
+if($WatchOnly){exit}
+$petFile=Join-Path $DataDir 'settings.json'
+if(-not(Test-Path -LiteralPath $petFile)){exit}
+$petSettings=Get-Content -LiteralPath $petFile -Raw -Encoding UTF8 | ConvertFrom-Json
+if($petSettings.schemaVersion -ne 1 -or $petSettings.sections.preferences.autostart -ne $true){exit}
+$petTarget=Get-Content -LiteralPath (Join-Path $DataDir 'startup-target.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+if(-not(Test-Path -LiteralPath $petTarget.executable)){exit}
+$petArgs=if($petTarget.packaged){'--background'}else{'"'+$petTarget.root+'" --background'}
+if(-not $petTarget.packaged -and $petTarget.nodeExecutable){$petArgs+=' "--pet-node-exe='+$petTarget.nodeExecutable+'"'}
+& (Join-Path $PSScriptRoot 'launch-detached.ps1') -Executable $petTarget.executable -Arguments $petArgs -WorkingDirectory $petTarget.root

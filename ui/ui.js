@@ -149,6 +149,11 @@ async function changeMode(){
 }
 $('#petMode').onchange=$('#connectedMode').onchange=changeMode;
 $('#saveLifecycle').onclick=async()=>{try{await api('/preferences','PUT',{autostart:$('#autostart').checked,snapMode:$('#snapMode').value});$('#lifecycleResult').textContent='已保存。';}catch(e){$('#lifecycleResult').textContent=e.message;}};
+for(const key of ['autostart','followClientStart','followClientClose'])$('#'+key).onchange=async()=>{
+  const output=$('#'+(key==='autostart'?'lifecycleResult':'clientLifecycleResult'));
+  try{await api('/preferences','PUT',{[key]:$('#'+key).checked});window.PetSettingsAutosave?.clear('pref:'+key);output.textContent='启动与退出开关已立即保存。';}
+  catch(e){output.textContent=e.message;}
+};
 $('#chooseCodex').onclick=async()=>{try{const r=await api('/runtime/choose','POST');$('#runtimeResult').textContent=r.canceled?'未更改':'已选择运行程序';}catch(e){$('#runtimeResult').textContent=e.message;}};
 
 let sourceChoiceDeferred=false;
