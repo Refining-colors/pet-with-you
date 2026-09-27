@@ -1,0 +1,33 @@
+{
+  "name": "pet-with-you",
+  "version": "0.1.0",
+  "private": true,
+  "main": "main.cjs",
+  "scripts": {
+    "start": "node scripts/dev.cjs",
+    "dev": "node scripts/dev.cjs",
+    "test": "node --test test/*.test.cjs",
+    "doctor": "node scripts/doctor.cjs",
+    "test:ui": "node scripts/run-isolated.cjs test",
+    "media:record": "node scripts/run-isolated.cjs demo",
+    "media:animations": "node scripts/export-animations.cjs",
+    "check:docs": "node scripts/check-docs.cjs"
+  },
+  "devDependencies": {
+    "electron": "^41.10.7",
+    "electron-builder": "^26.15.3"
+  },
+  "description": "Windows desktop pet with optional Codex task feedback and OpenAI-compatible chat",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "author": "Refining-colors",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Refining-colors/pet-with-you.git"
+  },
+  "homepage": "https://github.com/Refining-colors/pet-with-you",
+  "bugs": {
+    "url": "https://github.com/Refining-colors/pet-with-you/issues"
+  }
+}

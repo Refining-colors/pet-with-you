@@ -1,0 +1,32 @@
+name: 问题反馈
+description: 报告错误或与预期不符的行为
+title: "[问题] "
+body:
+  - type: markdown
+    attributes:
+      value: "请先查看 docs/TROUBLESHOOTING.md。不要上传密钥、auth.json、connection.json 或整个个人数据目录。"
+  - type: input
+    id: environment
+    attributes:
+      label: 环境
+      description: Windows 版本、项目版本、Node.js 版本、纯桌宠或连接模式
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 复现步骤
+      description: 按什么顺序操作后出现问题？
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: 预期与实际结果
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: 脱敏日志或截图
+      description: 优先提供设置中导出的错误编号，遮住密钥、账户和私人任务标题。

@@ -1,0 +1,19 @@
+const test=require('node:test'),assert=require('node:assert/strict');
+const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
+const {Preferences}=require('../preferences.cjs');
+test('reply duration and separate tab orders survive restart and reject invalid values',t=>{
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'pet-settings-'));t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));
+  const p=new Preferences(dir);p.save({disableRoaming:true,replyMode:'permanent',replySeconds:25,moduleOrder:{basic:['apiSection','quotaSection'],gpt:['clientSection']}});
+  assert.equal(p.value.disableEventResponse,false);p.save({disableEventResponse:true});assert.equal(new Preferences(dir).value.disableEventResponse,true);assert.throws(()=>p.save({disableEventResponse:'true'}));
+  assert.equal(p.value.quotaAfterTurn,false);p.save({quotaAfterTurn:true});assert.equal(new Preferences(dir).value.quotaAfterTurn,true);assert.throws(()=>p.save({quotaAfterTurn:'yes'}));
+  const reopened=new Preferences(dir);assert.equal(reopened.value.disableRoaming,true);assert.throws(()=>p.save({disableRoaming:'yes'}));assert.equal(reopened.value.replyMode,'permanent');assert.equal(reopened.value.replySeconds,25);
+  assert.deepEqual(reopened.value.moduleOrder,{basic:['apiSection','quotaSection'],gpt:['clientSection']});
+  assert.throws(()=>p.save({replySeconds:0}));assert.throws(()=>p.save({disableRoaming:true,replyMode:'invalid'}));
+  assert.throws(()=>p.save({moduleOrder:{basic:['../../secrets'],gpt:[]}}));
+  p.save({autoWhisperProbability:25});assert.equal(new Preferences(dir).value.autoWhisperProbability,25);
+  for(const value of [-1,101,'50',NaN])assert.throws(()=>p.save({autoWhisperProbability:value}));
+  p.save({whisperStreaming:false});assert.equal(new Preferences(dir).value.whisperStreaming,false);
+  assert.throws(()=>p.save({whisperStreaming:'yes'}));
+  p.save({quotaMode:'permanent',quotaSeconds:25});assert.equal(new Preferences(dir).value.quotaMode,'permanent');assert.equal(new Preferences(dir).value.quotaSeconds,25);
+  for(const quotaSeconds of [0,3601,'20',NaN])assert.throws(()=>p.save({quotaSeconds}));assert.throws(()=>p.save({quotaMode:'invalid'}));
+});

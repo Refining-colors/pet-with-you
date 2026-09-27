@@ -1,0 +1,64 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
+module.exports=async({settings,service,pet,dir})=>{
+  const ui=source=>settings.webContents.executeJavaScript(source);
+  const reordered=await ui(`(async()=>{const section=document.querySelector('#recentErrorsSection');await moveModule(section,1);return modules(document.querySelector('#basicPanel')).map(e=>e.id);})()`);
+  assert.deepEqual(service.preferences.value.moduleOrder.basic,reordered);
+  assert.equal(await ui(`document.querySelector('#recentErrorsSection .module-handle').draggable`),false);
+  service.diagnostics.clear();service.preferences.save({ignoreAccountTimeouts:false});service.diagnostics.record('quota-context',Object.assign(require('../diagnostics.cjs').issue('workspace-routing'),{stage:'account/read'}));
+  await ui(`document.querySelector('#ignoreAccountTimeouts').checked=true;document.querySelector('#ignoreAccountTimeouts').onchange()`);
+  assert.equal(service.diagnostics.summary().count,0);assert.equal(service.diagnostics.summary().ignoredCount,1);
+  assert.equal(await ui(`document.querySelector('#errorBanner').hidden`),true);
+  await ui(`document.querySelector('#ignoreAccountTimeouts').checked=false;document.querySelector('#ignoreAccountTimeouts').onchange()`);
+  assert.equal(await ui(`document.querySelector('#errorBanner').hidden`),false);
+  await ui(`document.querySelector('#ignoreAccountTimeouts').checked=true;document.querySelector('#ignoreAccountTimeouts').onchange()`);
+  service.diagnostics.clear();
+  await ui(`document.querySelector('#taskBasicFeedback').checked=true;document.querySelector('#taskBasicFeedback').onchange()`);
+  await ui(`document.querySelector('#taskNativeFeedback').checked=true;document.querySelector('#taskNativeFeedback').onchange()`);
+  const result=await pet.webContents.executeJavaScript(`(()=>{
+    const s=sprites[0];s.manualPlaying=false;s.stopMove();s.stopThrow();s.explicitQuota=false;s.errorNotice='';s.pet.workStatusEnabled=true;s.prevWorkState=null;
+    const snapshot={state:'working',task:'原有基础反馈',activeCount:2,items:[{sessionId:'12345678-1234-1234-1234-123456789abc',title:'正在修复桌宠任务联动',state:'working',activity:'执行命令'},{sessionId:'12345678-1234-1234-1234-123456789abd',title:'另一个并行对话',state:'thinking',activity:'思考中'}]};
+    window.petPreferences.taskBasicFeedback=true;window.petPreferences.taskNativeFeedback=true;s.onWorkTick(snapshot,99001);
+    const both=s.bubble.querySelector('.native-task-card')?.textContent.includes('正在修复桌宠任务联动')&&s.bubble.querySelector('.basic-task-feedback')?.textContent==='原有基础反馈';
+    const order=s.bubble.querySelector('.task-content').firstElementChild.classList.contains('native-task-card');
+    const r=s.bubble.getBoundingClientRect();s.onMouseMove({clientX:r.left+5,clientY:r.top+5});const clickable=s._interactive===true;s.bubbleHover=false;
+    applyPetPreferences({taskBasicFeedback:false,taskNativeFeedback:true});const nativeOnly=!!s.bubble.querySelector('.native-task-card')&&!s.bubble.querySelector('.basic-task-feedback')&&!s.workState;
+    applyPetPreferences({taskBasicFeedback:true,taskNativeFeedback:false});const basicOnly=!s.bubble.querySelector('.native-task-card')&&!!s.bubble.querySelector('.basic-task-feedback');
+    applyPetPreferences({taskBasicFeedback:false,taskNativeFeedback:false});const disabled=!s.workOn&&!s.workNative&&!s.workState;
+    applyPetPreferences({taskBasicFeedback:true,taskNativeFeedback:true});
+    return {both,order,clickable,nativeOnly,basicOnly,disabled};
+  })()`);
+  for(const [key,value] of Object.entries(result))assert.equal(value,true,key);
+  await new Promise(r=>setTimeout(r,200));
+  fs.writeFileSync(path.join(dir,'task-feedback.png'),(await pet.webContents.capturePage()).toPNG());
+  const fit=await pet.webContents.executeJavaScript(`(()=>{const s=sprites[0];s.bubble.style.setProperty('--pet-size','180px');const r=s.bubble.getBoundingClientRect(),content=s.bubble.querySelector('.task-content');content.scrollTop=10000;return {height:r.height,max:180*.58,scroll:content.scrollHeight>content.clientHeight&&content.scrollTop>0,noHorizontal:content.scrollWidth===content.clientWidth};})()`);
+  assert.ok(fit.height<=fit.max+1&&fit.scroll);
+  assert.ok(fit.noHorizontal);
+  const short=await pet.webContents.executeJavaScript(`(()=>{
+    const s=sprites[0];s.bubble.style.setProperty('--pet-size','462px');s.whisperOn=false;
+    s.onWorkTick({state:'working',task:'正在努力工作呢~',activeCount:1,items:[{sessionId:'12345678-1234-1234-1234-123456789abc',title:'修复反馈气泡',state:'working',activity:'执行命令'}]},99002);
+    const content=s.bubble.querySelector('.task-content'),mark=s.bubble.querySelector('.tone-mark');
+    return {outerOverflow:getComputedStyle(s.bubble).overflowY,vertical:content.scrollHeight<=content.clientHeight,horizontal:content.scrollWidth<=content.clientWidth,tone:mark?.textContent==='~'&&getComputedStyle(mark).verticalAlign==='baseline',original:s.bubble.querySelector('.basic-task-feedback').textContent==='正在努力工作呢~'};
+  })()`);
+  assert.equal(short.outerOverflow,'visible');
+  for(const key of ['vertical','horizontal','tone','original'])assert.equal(short[key],true,key);
+  await new Promise(r=>setTimeout(r,200));
+  fs.writeFileSync(path.join(dir,'task-feedback-short.png'),(await pet.webContents.capturePage()).toPNG());
+  const multi=await pet.webContents.executeJavaScript(`(()=>{
+    const s=sprites[0];s.onWorkTick({state:'working',task:'已知 2 个任务进行中\\n执行工具',activeCount:2,items:[{title:'任务 A',state:'working'},{title:'任务 B',state:'thinking'}]},99004);
+    const line=s.bubble.querySelector('.basic-task-feedback');return {text:line.textContent,whiteSpace:getComputedStyle(line).whiteSpace,height:line.clientHeight,lineHeight:parseFloat(getComputedStyle(line).lineHeight)};
+  })()`);
+  assert.equal(multi.text,'已知 2 个任务进行中\n执行工具');assert.equal(multi.whiteSpace,'pre-line');assert.ok(multi.height>=multi.lineHeight*2-1);
+  await new Promise(r=>setTimeout(r,100));fs.writeFileSync(path.join(dir,'task-feedback-multi.png'),(await pet.webContents.capturePage()).toPNG());
+  const mute=await pet.webContents.executeJavaScript(`(()=>{
+    const s=sprites[0];s.roundQuotaResult={ok:true};s.roundQuotaTarget=99;
+    applyPetPreferences({disableEventResponse:true});
+    const hidden=!s.workOn&&!s.workNative&&!s.workText&&s.bubble.hidden,cleared=s.roundQuotaResult===null&&s.roundQuotaTarget===null;
+    s.onWorkTick({state:'thinking',activeCount:1,task:'录屏期间任务'},99005);const quiet=!s.workOn&&s.bubble.hidden;
+    applyPetPreferences({disableEventResponse:false});const resumed=s.workOn&&s.workText==='录屏期间任务';
+    applyPetPreferences({disableEventResponse:true});s.onWorkTick({state:'success',activeCount:0,task:'静默完成'},99006);
+    applyPetPreferences({disableEventResponse:false});const noReplay=!s.workOn&&s.bubble.hidden;
+    return {hidden,cleared,quiet,resumed,noReplay};
+  })()`);
+  for(const [key,value] of Object.entries(mute))assert.equal(value,true,key);
+  await pet.webContents.executeJavaScript(`(()=>{const s=sprites[0];s.bubble.style.removeProperty('--pet-size');s.onWorkTick({state:null},99003);s.pet.workStatusEnabled=false;})()`);
+};

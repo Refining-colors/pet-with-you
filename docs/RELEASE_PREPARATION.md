@@ -1,0 +1,80 @@
+# GitHub 发布准备
+
+项目名已确定为 **pet-with-you**。仓库已由维护者创建：[Refining-colors/pet-with-you](https://github.com/Refining-colors/pet-with-you)。已验证 HTTPS/Git 读取，目前为空仓库；未上传源码，推送认证尚未验证。
+
+已建立独立 `pet-with-you` 源码目录，用于本机 Git 版本管理；日常安装与历史视频留在原目录。开发预览使用独立配置，操作见 [源码工作区指南](WORKSPACE.md)。初始化和本机提交不会自动推送 GitHub。
+
+## 对标上游后的材料
+
+参考 [PC2005-cloud/dsh-pet](https://github.com/PC2005-cloud/dsh-pet) 的安装、功能、配置、运行效果、素材链及许可章节，为本项目提供相应材料；DSH/pnpm/原插件安装流程不适用于我们的独立 Electron 应用，不照搬。
+
+| 内容 | 本项目材料 | 状态 |
+| --- | --- | --- |
+| 仓库首页与功能介绍 | [README](../README.md) | 已按 pet-with-you 整理 |
+| 零基础完整安装和连接 | [INSTALL](INSTALL.md) | 已编写，含官方前置下载链接和验收步骤 |
+| 独立使用手册 | [USER_GUIDE](USER_GUIDE.md) | 已重新组织 |
+| 常见问题与日志反馈 | [TROUBLESHOOTING](TROUBLESHOOTING.md)、Check-Setup.cmd | 已准备 |
+| 动画/录屏宣传 | [MEDIA_GUIDE](MEDIA_GUIDE.md)、Record-Demo.cmd | 自动生成演示和单独动作导出已实现 |
+| 原作关系及素材许可 | [ATTRIBUTION](../ATTRIBUTION.md)、LICENSE.upstream | 保留上游来源和条款 |
+| 开发说明 / AI 配置入口 | [CONTRIBUTING](../CONTRIBUTING.md)、[AGENTS](../AGENTS.md)、[ARCHITECTURE](ARCHITECTURE.md) | 已准备 |
+| 反馈模板与基础检查 | .github/ISSUE_TEMPLATE、PR 模板、Windows 自动测试工作流 | 已准备，云端工作流尚未实际运行 |
+| 数据安全与更新记录 | [SECURITY](../SECURITY.md)、[CHANGELOG](../CHANGELOG.md) | 已准备 |
+| 成品安装包与校验值 | 尚未提供 | 需要后续构建、签名/分发方案和干净机器验证 |
+
+维护者与仓库链接已填写；尚未提供正式下载版本，不添加虚构下载链接或维护者邮箱。
+
+## 发布前仍需决定
+
+- 维护者已确定为 Refining-colors，仓库地址已确定。
+- 本项目新增代码使用什么许可证；确认后添加相应正式许可证。不能用上游 MIT 覆盖素材的非商用限制。
+- 字体及其他第三方资源的分发授权：`assets/fonts/上首软糖体.ttf` 等随上游带来的资源，需要确认具体字体授权；上游总体声明不能替代字体权利人的授权。
+- 正式版本号、发布范围和用户反馈渠道；若要称为完整开源发行，应先补全许可证。
+
+托盘保留“关于 pet-with-you”，不再单列原作入口；维护者为 Refining-colors，原作信息保留在关于弹窗、设置页折叠致谢与文档中。历史数据目录和 Startup 入口保留旧名以兼容升级。
+
+## 发布验收清单
+
+- [x] 名称、源码包名、README 和主要显示文字统一。
+- [x] 运行代码检查个人机器绝对路径，清理无用研究文件和旧验证入口。
+- [x] 隔离自动测试、文档链接检查、当前 Windows 桌面界面验证。
+- [x] 用本项目界面生成截图及演示视频，全部使用演示数据。
+- [x] 源码导出白名单覆盖新增文档、脚本和 .github 材料。
+- [x] 独立源码目录安装依赖；63 项自动测试、桌面界面验证、开发预览隔离验证通过，15 份文档的 53 个本地链接有效。
+- [x] Electron 更新至 41.10.7；本次依赖审计没有已知漏洞（不等同于完整安全审计）。
+- [ ] 在全新目录、无现有设置的 Windows 环境按手册重新下载依赖并验收。
+- [ ] 检查不同 Windows 显示缩放、多显示器、非默认安装渠道和正常退出保存。
+- [ ] 实际登录重启验证开机自启动、随客户端启停、目录移动后的 Hooks 更新。
+- [ ] 确认新增代码许可证、字体/配套素材分发权利。
+- [ ] 真正发布时执行源码导出并人工检查，确保没有个人配置、密钥、私密截图或私人字体。
+- [x] 创建 GitHub 仓库并补全主页、问题反馈链接。
+- [ ] 首次推送、验证 GitHub Actions、发布 Releases，并开启私密漏洞报告。
+- [ ] 视频附件上传后再将链接写入 README；发布说明保留原作链接。
+
+此前三个源码快照只保留在原日常目录作为本机备份，没有复制进新仓库。`node_modules/` 为本机依赖，`.npm-cache/` 为本机缓存，均不应上传。
+
+## GitHub 页面上的内容从哪来
+
+文件列表下面的介绍就是根目录 **README.md**，GitHub 自动排版，不需要另建网站。文档、截图、模板通常随源码上传。
+
+| 页面内容 | 如何准备 |
+| --- | --- |
+| 长篇介绍、表格、章节、折叠说明 | 编写 README.md，使用 Markdown |
+| 图片 / GIF | 存在 docs/images，再用相对路径引用 |
+| 演示视频 | 上传为附件或发布下载文件，填真实链接 |
+| 右侧 About 简介和标签 | 创建仓库后在 GitHub 页面设置 |
+| Releases 安装包 | 单独创建版本说明并上传可下载产物 |
+| Issue 表单 | 仓库里的 .github/ISSUE_TEMPLATE |
+| PR 模板 | .github/PULL_REQUEST_TEMPLATE.md |
+| 自动测试 | .github/workflows/check.yml；上传后由 GitHub Actions 运行 |
+| 下载数、星数或测试徽章 | 仓库存在后引用真实数据地址 |
+
+项目内链接使用相对路径，不能把开发者电脑的磁盘路径写入对外文档。GitHub 不会自动把源码变成可用的 Windows 安装程序。
+
+
+## GitHub About 简介草稿
+
+简介：Windows 桌面陪伴宠物，支持随机互动、自有 API 聊天与碎碎念，并可连接 Codex 显示任务状态和额度。
+
+建议标签：`desktop-pet`、`windows`、`electron`、`codex`、`virtual-pet`、`openai-compatible`。这是待填入 GitHub About 的文字，尚未修改远程设置。
+
+首页内容由根目录 README 自动显示；上传后无需另外制作网站。宣传视频以 4K 为目标，二维与三维取舍及待办见 [视频方案](VIDEO_PLAN.md)。

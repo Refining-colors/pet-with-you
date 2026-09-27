@@ -1,0 +1,62 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>pet-with-you demo compositor</title>
+<style>body{margin:0}canvas{display:block}</style>
+<canvas width="1280" height="720"></canvas>
+<script>
+const canvas = document.querySelector('canvas'), ctx = canvas.getContext('2d');
+let recorder, chunks;
+window.startRecording = () => {
+  chunks = [];
+  const mimeType = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8'].find(type => MediaRecorder.isTypeSupported(type));
+  if (!mimeType) throw new Error('WebM encoder unavailable');
+  recorder = new MediaRecorder(canvas.captureStream(15), { mimeType, videoBitsPerSecond: 4000000 });
+  recorder.ondataavailable = event => { if (event.data.size) chunks.push(event.data); };
+  recorder.start(500);
+};
+window.drawFrame = async (source, title, subtitle, index) => {
+  const picture = new Image(); picture.src = source; await picture.decode();
+  const gradient = ctx.createLinearGradient(0, 0, 1280, 720);
+  gradient.addColorStop(0, '#f5f1e5'); gradient.addColorStop(1, '#dcebe1');
+  ctx.fillStyle = gradient; ctx.fillRect(0, 0, 1280, 720);
+  ctx.fillStyle = '#224d41'; ctx.font = 'bold 46px Georgia'; ctx.fillText('pet-with-you', 64, 94);
+  ctx.fillStyle = '#54675f'; ctx.font = '18px "Microsoft YaHei"'; ctx.fillText('陪你工作，也陪你发呆。', 66, 135);
+  ctx.fillStyle = '#224d41'; ctx.font = 'bold 30px "Microsoft YaHei"'; ctx.fillText(title, 64, 284);
+  ctx.fillStyle = '#54675f'; ctx.font = '19px "Microsoft YaHei"';
+  subtitle.split('\n').forEach((line, i) => ctx.fillText(line, 66, 326 + i * 32));
+  ctx.strokeStyle = '#b5c6b9'; ctx.beginPath(); ctx.moveTo(66, 438); ctx.lineTo(430, 438); ctx.stroke();
+  for (let i = 0; i < 4; i++) { ctx.fillStyle = i === index ? '#224d41' : '#b7c8bd'; ctx.fillRect(66 + i * 39, 464, 26, 5); }
+  const ratio = Math.min(780 / picture.width, 585 / picture.height);
+  ctx.drawImage(picture, 475 + (780 - picture.width * ratio) / 2, 42 + (585 - picture.height * ratio) / 2, picture.width * ratio, picture.height * ratio);
+  ctx.fillStyle = '#54675f'; ctx.font = '14px "Microsoft YaHei"';
+  ctx.fillText('本项目界面实录 · 任务 / 用量 / 回复均为演示数据', 66, 646);
+  ctx.fillText('角色与动画来源：https://github.com/PC2005-cloud/dsh-pet · 非商用素材', 66, 674);
+};
+window.stopRecording = () => new Promise((resolve, reject) => {
+  recorder.onstop = async () => {
+    recorder.stream.getTracks().forEach(track => track.stop());
+    const blob = new Blob(chunks, { type: 'video/webm' });
+    const url = URL.createObjectURL(blob), video = document.createElement('video');
+    video.muted = true;
+    try {
+      await new Promise((ready, failed) => {
+        const timer = setTimeout(() => failed(new Error('Recorded video did not decode')), 8000);
+        video.onloadeddata = () => { clearTimeout(timer); ready(); };
+        video.onerror = () => { clearTimeout(timer); failed(new Error('Recorded video decode failed')); };
+        video.src = url;
+      });
+      if (video.videoWidth !== 1280 || video.videoHeight !== 720) throw new Error('Incorrect recorded dimensions');
+      await new Promise((ready, failed) => {
+        const timer = setTimeout(() => failed(new Error('Recorded video cannot seek')), 8000);
+        video.onseeked = () => { clearTimeout(timer); ready(); }; video.currentTime = 10;
+      });
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = () => reject(new Error('Cannot read recorded video'));
+      reader.readAsDataURL(blob);
+    } catch (error) { reject(error); }
+    finally { video.removeAttribute('src'); video.load(); URL.revokeObjectURL(url); }
+  };
+  recorder.stop();
+});
+</script>
