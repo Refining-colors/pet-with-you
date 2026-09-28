@@ -20,7 +20,7 @@ if ($petExisting -or (Test-Path -LiteralPath $petDesktop) -or (Test-Path -Litera
 if((Test-Path -LiteralPath $petJointDesktop) -or (Test-Path -LiteralPath $petJointMenu)){throw 'Joint launcher already exists; use a clean Windows account for this test.'}
 $petTempBase = [IO.Path]::GetFullPath([IO.Path]::GetTempPath())
 $petTemp = Join-Path $petTempBase ('pet installer check ' + [Guid]::NewGuid().ToString('N'))
-$petInstall = Join-Path $petTemp 'installed app'
+$petInstall = Join-Path $petTemp ('custom ' + [char]0x4E2D + [char]0x6587 + '\pet-with-you')
 $petData = Join-Path $petTemp 'user-data'
 $petOldCodex = $env:CODEX_HOME
 $petOldData = $env:PET_TEST_DATA_DIR
@@ -40,6 +40,12 @@ function Uninstall-TestPet {
   }
 }
 try {
+  $petBlocked = Join-Path $petTemp 'blocked-target'
+  Set-Content -LiteralPath $petBlocked -Value 'Preserve this file.'
+  $petProcess = Start-Process -FilePath $Installer -ArgumentList "/S /D=$petBlocked" -WindowStyle Hidden -Wait -PassThru
+  if ($petProcess.ExitCode -ne 60001 -or (Get-Content -LiteralPath $petBlocked -Raw).Trim() -ne 'Preserve this file.') { throw 'Installer did not reject an unwritable target before extraction.' }
+  if ((Test-Path -LiteralPath $petDesktop) -or (Test-Path -LiteralPath $petMenu)) { throw 'Failed preflight created shortcuts.' }
+  Write-Output 'PASS: failed directory preflight stops installation before extraction.'
   foreach ($petShortcut in @($false, $true)) {
     $petOptions = if ($petShortcut) { '/S' } else { '/S /NoDesktopShortcut' }
     # NSIS requires /D last and consumes its remaining text as the path, including spaces.
@@ -63,6 +69,15 @@ try {
     $petHooks = @{ hooks = @{ Stop = @(@{ hooks = @(@{type='command'; command=$petHookCommand}, @{type='command'; command='echo fixture-unrelated'}) }) } } | ConvertTo-Json -Depth 8
     Set-Content -LiteralPath $petHooksPath -Value $petHooks -Encoding Ascii
     if ($petShortcut) {
+      $petBefore = (Get-FileHash -LiteralPath $petExe -Algorithm SHA256).Hash
+      $petIcon = Join-Path $petInstall 'uninstallerIcon.ico'
+      try {
+        (Get-Item -LiteralPath $petIcon).IsReadOnly = $true
+        $petProcess = Start-Process -FilePath $Installer -ArgumentList "$petOptions /D=$petInstall" -WindowStyle Hidden -Wait -PassThru
+        if ($petProcess.ExitCode -ne 60001) { throw 'Read-only icon did not stop reinstallation.' }
+      } finally { (Get-Item -LiteralPath $petIcon).IsReadOnly = $false }
+      if ((Get-FileHash -LiteralPath $petExe -Algorithm SHA256).Hash -ne $petBefore -or (Get-Content -LiteralPath $petHooksPath -Raw).Trim() -ne $petHooks.Trim()) { throw 'Failed preflight damaged the existing installation.' }
+      Write-Output 'PASS: failed reinstall preserves the installed program and Hooks.'
       $petProcess = Start-Process -FilePath $Installer -ArgumentList "$petOptions /D=$petInstall" -WindowStyle Hidden -Wait -PassThru
       if ($petProcess.ExitCode -ne 0 -or (Get-Content -LiteralPath $petHooksPath -Raw).Trim() -ne $petHooks.Trim()) { throw 'Reinstallation changed existing Hooks.' }
       Write-Output 'PASS: same-version reinstall preserves Hooks.'

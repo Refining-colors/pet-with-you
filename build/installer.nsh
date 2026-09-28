@@ -4,6 +4,7 @@
 !include MUI2.nsh
 
 !ifndef BUILD_UNINSTALLER
+!include "${BUILD_RESOURCES_DIR}\install-preflight.nsh"
 Var PetShortcutCheckbox
 Var PetCreateDesktopShortcut
 
@@ -13,6 +14,14 @@ Var PetCreateDesktopShortcut
   ${GetOptions} $R0 "/NoDesktopShortcut" $R1
   ${IfNot} ${Errors}
     StrCpy $PetCreateDesktopShortcut ${BST_UNCHECKED}
+  ${EndIf}
+  ${If} ${Silent}
+    Call PetCheckInstallDirectory
+    ${If} $PetInstallError != 0
+      Call PetReportInstallError
+      SetErrorLevel 60001
+      Quit
+    ${EndIf}
   ${EndIf}
 !macroend
 
@@ -35,6 +44,13 @@ FunctionEnd
 
 Function PetShortcutLeave
   ${NSD_GetState} $PetShortcutCheckbox $PetCreateDesktopShortcut
+  ; Use electron-builder's final directory before testing, not the parent selected in Browse.
+  Call instFilesPre
+  Call PetCheckInstallDirectory
+  ${If} $PetInstallError != 0
+    Call PetReportInstallError
+    Abort
+  ${EndIf}
 FunctionEnd
 
 !macro customInstall

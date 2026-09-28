@@ -5,7 +5,7 @@ on:
       tag:
         description: Existing version tag to build
         required: true
-        default: v0.1.0-alpha.5
+        default: v0.1.0-alpha.6
 permissions:
   contents: write
 concurrency:
@@ -35,6 +35,8 @@ jobs:
       - run: npm audit --audit-level=high
       - run: npm run dist:win
       - run: node scripts/audit-package.cjs
+      - name: Verify custom directory, Unicode paths, permissions and locked files
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-install-directory.ps1
       - name: Verify installation, shortcuts, bundled runtime and uninstall
         run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-installer.ps1
       - name: Prepare checksums and installation guide

@@ -82,3 +82,5 @@ README 可直接显示 PNG/GIF，首页已展开完整动画与表情图鉴，�
 脚本中的 `scripts/demo-canvas.html` 控制版式，`scripts/record-demo.cjs` 控制场景，`scripts/media-tools.cjs` 共用素材目录核对与 FFmpeg 调用。
 
 角色与动画来自 [PC2005-cloud/dsh-pet](https://github.com/PC2005-cloud/dsh-pet)，保留其非商用与署名要求，详见 [来源与致谢](../ATTRIBUTION.md)。视频画面不放来源网址；对外发布介绍/说明仍应保留来源关系。
+
+最新剪辑交付：完整片头与正片分开，保留各自原始输出，放在本机 `media-output/editing-delivery/`；11 秒 4K/30fps 片头与 59 秒 4K/24fps 正片均无声，由维护者自行组合。

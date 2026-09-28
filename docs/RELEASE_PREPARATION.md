@@ -1,6 +1,6 @@
 # GitHub 发布准备
 
-项目名为 **pet-with-you**，仓库为 [Refining-colors/pet-with-you](https://github.com/Refining-colors/pet-with-you)。源码、ZIP 下载和 Windows 自动检查已验证；首次公开安装包为 [0.1.0-alpha.5](https://github.com/Refining-colors/pet-with-you/releases/tag/v0.1.0-alpha.5)。安装包在干净 Windows 环境构建并完成安装/卸载验收，详见 [检查记录](RELEASE_CHECK.md)。
+项目名为 **pet-with-you**，仓库为 [Refining-colors/pet-with-you](https://github.com/Refining-colors/pet-with-you)。源码、ZIP 下载和 Windows 自动检查已验证；当前安装包为 [0.1.0-alpha.6](https://github.com/Refining-colors/pet-with-you/releases/tag/v0.1.0-alpha.6)。安装包在干净 Windows 环境构建并完成安装/卸载验收，详见 [检查记录](RELEASE_CHECK.md)。
 
 已建立独立 `pet-with-you` 源码目录，用于本机 Git 版本管理；日常软件运行于安装目录，历史源码和视频另行保留。开发预览使用独立配置，操作见 [源码工作区指南](WORKSPACE.md)。初始化和本机提交不会自动推送 GitHub。
 
@@ -32,11 +32,11 @@
 
 托盘保留“关于 pet-with-you”，点击直接打开本项目仓库，不再单列原作入口；维护者为 Refining-colors，原作信息保留在设置页折叠致谢与文档中。普通快捷方式名称为 `pet-with-u`，项目名称不变。历史数据目录和 Startup 入口保留旧名以兼容升级。
 
-alpha.5 已统一版本与最新程序内容。日常安装目录和本机构建测试分开，发布不会自动替维护者升级日常软件；历史 alpha.3 安装器仅作本机回退，不能覆盖新版。
+alpha.6 已统一版本与最新程序内容。日常安装目录和本机构建测试分开，发布不会自动替维护者升级日常软件；历史 alpha.3 安装器仅作本机回退，不能覆盖新版。
 
 ## 发布验收清单
 
-- [x] 重新构建 alpha.5，验证 `Codex withu` 入口、独立图标、联合启动与卸载清理，首次提示与自选目录另有本机 UI 验证。
+- [x] 重新构建 alpha.6，验证 `Codex withu` 入口、独立图标、联合启动与卸载清理，首次提示与自选目录另有本机 UI 验证。
 - [x] 名称、源码包名、README 和主要显示文字统一。
 - [x] 运行代码检查个人机器绝对路径，清理无用研究文件和旧验证入口。
 - [x] 隔离自动测试、文档链接检查、当前 Windows 桌面界面验证。
