@@ -29,7 +29,7 @@ $env:CODEX_HOME = Join-Path $petTemp 'codex-home'
 $env:PET_TEST_DATA_DIR = $petData
 New-Item -ItemType Directory -Path $env:CODEX_HOME -Force | Out-Null
 Set-Content -LiteralPath (Join-Path $petData 'retain.txt') -Value 'Preserve user data.'
-$petShell = New-Object -ComObject WScript.Shell
+. (Join-Path $petRoot 'shell-shortcut.ps1')
 function Uninstall-TestPet {
   $petUninstaller = Join-Path $petInstall 'Uninstall pet-with-you.exe'
   if (Test-Path -LiteralPath $petUninstaller) {
@@ -50,14 +50,14 @@ try {
     if ((Test-Path -LiteralPath $petDesktop) -ne $petShortcut) { throw 'Desktop shortcut choice was not honored.' }
     foreach ($petLinkPath in @($petMenu, $(if ($petShortcut) { $petDesktop } else { $petMenu }))) {
       if (-not (Test-Path -LiteralPath $petLinkPath)) { throw 'Missing shortcut.' }
-      $petLink = $petShell.CreateShortcut($petLinkPath)
+      $petLink = (New-PetShortcut $petLinkPath)
       if ($petLink.TargetPath -ne $petExe -or -not $petLink.IconLocation.StartsWith($petExe, [StringComparison]::OrdinalIgnoreCase)) { throw 'Shortcut target or icon does not match the installed executable.' }
     }
     & node (Join-Path $PSScriptRoot 'verify-packaged.cjs') $petExe
     if ($LASTEXITCODE -ne 0) { throw 'Installed application smoke test failed.' }
     $petHooksPath = Join-Path $env:CODEX_HOME 'hooks.json'
     foreach($petJointFile in @($petJointDesktop,$petJointMenu)){
-      $petJoint=$petShell.CreateShortcut($petJointFile);$petJoint.TargetPath=$petExe;$petJoint.Arguments='--launch-client';$petJoint.Save()
+      $petJoint=(New-PetShortcut $petJointFile);$petJoint.TargetPath=$petExe;$petJoint.Arguments='--launch-client';$petJoint.Save()
     }
     $petHookCommand = '"' + (Join-Path $petInstall 'resources\app\hook.cmd').Replace('\', '/') + '"'
     $petHooks = @{ hooks = @{ Stop = @(@{ hooks = @(@{type='command'; command=$petHookCommand}, @{type='command'; command='echo fixture-unrelated'}) }) } } | ConvertTo-Json -Depth 8

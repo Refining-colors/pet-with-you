@@ -16,14 +16,14 @@ test('unattended source installation exits promptly when Node is missing', { ski
 });
 
 test('desktop shortcut resolves its moved source folder and preserves the tray icon', { skip: process.platform !== 'win32' }, t => {
-  const folder = fs.mkdtempSync(path.join(os.tmpdir(), "pet shortcut ' 移动目录-"));
+  const folder = fs.mkdtempSync(path.join(os.tmpdir(), "pet shortcut ' 移动目录 🌊-"));
   t.after(() => fs.rmSync(folder, { recursive: true, force: true }));
   fs.mkdirSync(path.join(folder, 'scripts')); fs.mkdirSync(path.join(folder, 'build'));
-  for (const file of ['scripts/create-shortcut.ps1', 'launcher.vbs', 'build/icon.ico']) fs.copyFileSync(path.join(root, file), path.join(folder, file));
+  for (const file of ['shell-shortcut.ps1', 'scripts/create-shortcut.ps1', 'launcher.vbs', 'build/icon.ico']) fs.copyFileSync(path.join(root, file), path.join(folder, file));
   execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', path.join(folder, 'scripts/create-shortcut.ps1'), '-DestinationDirectory', folder], { windowsHide: true });
   const literal = value => "'" + value.replaceAll("'", "''") + "'";
-  const command = "$s=(New-Object -ComObject WScript.Shell).CreateShortcut(" + literal(path.join(folder, 'pet-with-u.lnk')) + "); [Console]::OutputEncoding=[System.Text.Encoding]::UTF8; @{target=$s.TargetPath;arguments=$s.Arguments;working=$s.WorkingDirectory;icon=$s.IconLocation}|ConvertTo-Json -Compress";
-  const link = JSON.parse(execFileSync('powershell.exe', ['-NoProfile', '-Command', command], { encoding: 'utf8', windowsHide: true }).replace(/^\uFEFF/, ''));
+  const command = ". " + literal(path.join(root,'shell-shortcut.ps1')) + ";$s=New-PetShortcut " + literal(path.join(folder, 'pet-with-u.lnk')) + "; [Console]::OutputEncoding=[System.Text.Encoding]::UTF8; @{target=$s.TargetPath;arguments=$s.Arguments;working=$s.WorkingDirectory;icon=$s.IconLocation}|ConvertTo-Json -Compress";
+  const link = JSON.parse(execFileSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', command], { encoding: 'utf8', windowsHide: true }).replace(/^\uFEFF/, ''));
   assert.match(link.target, /wscript\.exe$/i);
   assert.ok(link.arguments.includes(path.join(folder, 'launcher.vbs')));
   assert.equal(link.working, folder);

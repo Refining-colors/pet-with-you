@@ -6,7 +6,7 @@ const ps=value=>"'"+String(value).replaceAll("'","''")+"'";
 const configFile=dir=>path.join(dir,'client-launcher.local.json');
 function discoverClients(){
   try{
-    const result=execFileSync('powershell.exe',['-NoProfile','-NonInteractive','-Command',"[Console]::OutputEncoding=[Text.Encoding]::UTF8; ConvertTo-Json -Compress -InputObject @(Get-StartApps | Where-Object {$_.Name -match '^(Codex|ChatGPT)$'} | Select-Object Name,AppID)"],{encoding:'utf8',windowsHide:true,timeout:15000}).replace(/^\uFEFF/,'');
+    const result=execFileSync('powershell.exe',['-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-Command',"[Console]::OutputEncoding=[Text.Encoding]::UTF8; ConvertTo-Json -Compress -InputObject @(Get-StartApps | Where-Object {$_.Name -match '^(Codex|ChatGPT)$'} | Select-Object Name,AppID)"],{encoding:'utf8',windowsHide:true,timeout:15000}).replace(/^\uFEFF/,'');
     return JSON.parse(result).filter(item=>typeof item.AppID==='string'&&/^[\w.!-]+$/.test(item.AppID)&&item.AppID.includes('!')).map(item=>({kind:'appId',appId:item.AppID,name:item.Name}));
   }catch{return [];}
 }
@@ -32,8 +32,8 @@ function createClientLauncher({dataDir,root=__dirname,executable=process.execPat
   const args=packaged?'--launch-client':'"'+path.join(root,'launcher.vbs')+'" client "'+nodeExecutable+'"';
   let file=path.join(directory,'Codex withu.lnk');
   for(let index=2;fs.existsSync(file);index++)file=path.join(directory,`Codex withu (${index}).lnk`);
-  const script=`$ErrorActionPreference='Stop';if(Test-Path -LiteralPath ${ps(file)}){throw 'Shortcut already exists.'};$shell=New-Object -ComObject WScript.Shell;$link=$shell.CreateShortcut(${ps(file)});$link.TargetPath=${ps(launcher)};$link.Arguments=${ps(args)};$link.WorkingDirectory=${ps(root)};$link.IconLocation=${ps(icon+',0')};$link.Description='Codex withu - Codex + pet-with-you';$link.WindowStyle=7;$link.Save()`;
-  execFileSync('powershell.exe',['-NoProfile','-NonInteractive','-Command',script],{windowsHide:true,timeout:15000,stdio:'pipe'});
+  const script=`$ErrorActionPreference='Stop';if(Test-Path -LiteralPath ${ps(file)}){throw 'Shortcut already exists.'};. ${ps(path.join(__dirname,'shell-shortcut.ps1'))};$link=New-PetShortcut ${ps(file)};$link.TargetPath=${ps(launcher)};$link.Arguments=${ps(args)};$link.WorkingDirectory=${ps(root)};$link.IconLocation=${ps(icon+',0')};$link.Description='Codex withu - Codex + pet-with-you';$link.WindowStyle=7;$link.Save()`;
+  execFileSync('powershell.exe',['-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-Command',script],{windowsHide:true,timeout:15000,stdio:'pipe'});
   let previous;try{previous=JSON.parse(fs.readFileSync(configFile(dataDir),'utf8'));}catch{}
   const shortcuts=[...new Set([...(Array.isArray(previous?.shortcuts)?previous.shortcuts.filter(p=>typeof p==='string'&&path.isAbsolute(p)):[]),file])];
   try{atomic(configFile(dataDir),{...target,shortcuts});}

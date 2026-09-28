@@ -4,7 +4,7 @@ files.push('ATTRIBUTION.md','project.cjs','AGENTS.md','CONTRIBUTING.md','SECURIT
 files.push('bootstrap.cjs','hook-command.cjs','hook.cmd','Create-Shortcut.cmd','electron-builder.cjs','Uninstall-Integration.cmd','cleanup-startup.ps1','PREVIEW-NOTICE.txt');
 files.push('LICENSE','settings-store.cjs','detached-launch.cjs','launch-detached.ps1','client-launcher.cjs','client-launcher-entry.cjs');
 files.push('pet-shortcut.cjs');
-files.push('legacy-package-data.cjs');
+files.push('legacy-package-data.cjs','shell-shortcut.ps1');
 const directories=['assets','runtime','ui','test','docs','scripts','.github','build'];
 function exportSource(destination){
   if(fs.existsSync(destination))throw new Error('导出目录已存在，请选择新的目录');

@@ -3,6 +3,7 @@ const fs=require('node:fs'),path=require('node:path');
 const {BrowserWindow,app}=require('electron');
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 module.exports=async function verify({service,openSettings,getSettings,largeTrayMenu}){
+  fs.mkdirSync(path.join(__dirname,'../qa-output'),{recursive:true});
   const errors=[];
   const pet=()=>BrowserWindow.getAllWindows().find(w=>w!==getSettings());
   const request=async(route,body)=>{const r=await fetch(service.base+route,{method:body?'PUT':'GET',body:body?JSON.stringify(body):undefined});return r.json();};

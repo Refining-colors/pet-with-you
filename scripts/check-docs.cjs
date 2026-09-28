@@ -6,8 +6,10 @@ walk(path.join(root,'docs'));
 let count=0, errors=[];
 for(const file of files){
   const text=fs.readFileSync(file,'utf8');
-  for(const match of text.matchAll(/\]\(([^\s)]+)(?:\s+"[^"]*")?\)/g)){
-    const target=match[1].split('#')[0];if(!target||/^[a-z]+:/i.test(target))continue;
+  const targets=[...text.matchAll(/\]\(([^\s)]+)(?:\s+"[^"]*")?\)/g)].map(match=>match[1]);
+  for(const match of text.matchAll(/<(?:img|a)\b[^>]*\b(?:src|href)=["']([^"']+)["']/gi))targets.push(match[1]);
+  for(const value of targets){
+    const target=value.split('#')[0];if(!target||/^[a-z]+:/i.test(target))continue;
     count++;if(!fs.existsSync(path.resolve(path.dirname(file),decodeURIComponent(target))))errors.push(path.relative(root,file)+': '+target);
   }
 }

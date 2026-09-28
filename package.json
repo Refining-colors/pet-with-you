@@ -14,7 +14,8 @@
     "check:docs": "node scripts/check-docs.cjs",
     "dist:win": "electron-builder --config electron-builder.cjs --win nsis --x64 --publish never",
     "pack:win": "electron-builder --config electron-builder.cjs --win --x64 --dir --publish never",
-    "audit:source": "node scripts/audit-source.cjs"
+    "audit:source": "node scripts/audit-source.cjs",
+    "media:catalog": "node scripts/build-animation-catalog.cjs"
   },
   "devDependencies": {
     "electron": "^41.10.7",

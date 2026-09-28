@@ -27,13 +27,13 @@
 
 ## 安装下载失败
 
-如果 npm 包能下载、但 Electron 二进制下载反复提示 `fetch failed`，可能是 GitHub 下载线路不稳定。可先重试或检查本机网络；也可在项目目录的 PowerShell 临时使用 npmmirror 的 Electron 镜像：
+如果 npm 包能下载、但 Electron 二进制下载长时间没有进度，或反复提示 `fetch failed`，可能是 GitHub 下载线路不稳定。先在安装窗口按 Ctrl+C 停止本次安装，再重试或检查本机网络；也可在项目目录的 PowerShell 临时使用 npmmirror 的 Electron 镜像：
 
 ```powershell
 $petPreviousMirror = $env:ELECTRON_MIRROR
 try {
   $env:ELECTRON_MIRROR = 'https://npmmirror.com/mirrors/electron/'
-  npm ci --cache .npm-cache
+  npm ci --include=dev --foreground-scripts --cache .npm-cache
 } finally {
   $env:ELECTRON_MIRROR = $petPreviousMirror
 }

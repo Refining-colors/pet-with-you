@@ -1,5 +1,7 @@
 # pet-with-you 使用手册
 
+全部动作和对应触发方式可查看 [动画与表情图鉴](ANIMATIONS.md)。
+
 第一次运行先看 [从零安装与配置](INSTALL.md)，报错看 [排错手册](TROUBLESHOOTING.md)。本项目基于 [PC2005-cloud/dsh-pet](https://github.com/PC2005-cloud/dsh-pet) 改造，保留原角色与动画。
 
 ## 安装与启动

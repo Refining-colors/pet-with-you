@@ -1,6 +1,6 @@
 # 从零安装与配置 pet-with-you
 
-这份手册面向第一次下载 GitHub 项目的人。当前为 **0.1.0-alpha.3 本地预览版**，有 Windows x64 安装程序与源码启动两种方式，尚未公开发布。无需购买开发工具，也不必安装 Git。
+这份手册面向第一次下载 GitHub 项目的人。当前为 **0.1.0-alpha.3 源码预览版**，源码已上传并可下载，暂未提供公开 EXE 安装包。普通访客请按第一至第四步安装源码版。无需购买开发工具，也不必安装 Git。
 
 ## 使用预览安装程序
 
@@ -45,7 +45,7 @@ Electron 是桌宠的窗口运行环境，下一步会自动下载，无需另�
 
 ## 第二步：下载并放好项目
 
-正式仓库发布后，在仓库页面点击绿色 **Code → Download ZIP**，然后完整解压。本项目仓库是 [Refining-colors/pet-with-you](https://github.com/Refining-colors/pet-with-you)，目前已创建但尚未上传源码；请等待首次提交/发布后再下载，不要把上游仓库误认为本项目安装包。
+打开 [Refining-colors/pet-with-you](https://github.com/Refining-colors/pet-with-you)，点击绿色 **Code → Download ZIP**。下载后右键压缩包 → 全部解压，进入解压出来的 `pet-with-you-main` 目录。不需要 GitHub 账号或 Git；不要下载上游仓库代替本项目。
 
 把解压后的项目放在准备长期使用的目录，例如自己的应用目录。确认目录里有 `package.json`、`Install-Pet.cmd`、`Start-Pet.cmd`、`assets`，而不是只下载了 README。
 
@@ -53,12 +53,12 @@ Electron 是桌宠的窗口运行环境，下一步会自动下载，无需另�
 
 ## 第三步：安装桌宠依赖
 
-1. 双击 `Install-Pet.cmd`。
-2. 等待下载结束，按提示选择是否创建桌面快捷方式，出现 `Ready` 表示安装成功。首次需要网络下载 npm/Electron 依赖。
+1. 双击 `Install-Pet.cmd`。这是依赖安装入口；Node.js 需要先按第一步安装。
+2. 看到 `[1/3]` 时正在下载依赖与 Electron，首次可能等待数分钟；`[2/3]` 为本机检查。最后按 `Y` 创建桌面快捷方式，或按 `N` 跳过，出现 `Ready` 表示安装成功。首次需要网络下载 npm/Electron 依赖。
 3. 如果失败，保留窗口里的错误信息，见 [排错手册](TROUBLESHOOTING.md)。
 4. 双击 `Check-Setup.cmd` 做环境检查。Codex 标为可选项，不影响纯桌宠。
 
-习惯终端的用户可以在项目目录运行 `npm ci`。这是安装项目依赖，不会自动安装或登录 Codex。
+习惯终端的用户可以在项目目录运行 `npm ci --include=dev`。这是安装项目依赖，不会自动安装或登录 Codex。
 
 以后补建快捷方式可双击 `Create-Shortcut.cmd`。快捷方式自动记录当前源码目录、Node.js 路径与图标位置；项目或 Node.js 移动后应重新创建。自动安装可用 `Install-Pet.cmd --no-shortcut` 跳过快捷方式询问，或 `--shortcut` 创建。
 

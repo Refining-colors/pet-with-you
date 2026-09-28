@@ -34,7 +34,7 @@ test('joint launcher always opens both apps, ignores retired switches and preser
   }
 });
 test('joint launcher creates a custom-folder link with its own icon and preserves name collisions',{skip:process.platform!=='win32'},t=>{
-  const dir=fixture(t),directory=path.join(dir,'custom 中文');fs.mkdirSync(directory);
+  const dir=fixture(t),directory=path.join(dir,'custom 中文 🌊');fs.mkdirSync(directory);
   const root=path.resolve(__dirname,'..'),executable=process.execPath;
   const options={dataDir:dir,root,executable,packaged:true,directory,target:{kind:'appId',appId:'Fixture.Package!App'}};
   const first=createClientLauncher(options),bytes=fs.readFileSync(first.file);
@@ -45,7 +45,7 @@ test('joint launcher creates a custom-folder link with its own icon and preserve
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(dir,'client-launcher.local.json'))).shortcuts,[first.file,second.file]);
   const {execFileSync}=require('node:child_process');
   for(const link of [first.file,second.file]){
-    const result=execFileSync('powershell.exe',['-NoProfile','-Command',"$s=(New-Object -ComObject WScript.Shell).CreateShortcut('"+link.replaceAll("'","''")+"');@{target=$s.TargetPath;args=$s.Arguments;icon=$s.IconLocation}|ConvertTo-Json -Compress"],{encoding:'utf8',windowsHide:true});
+    const result=execFileSync('powershell.exe',['-NoProfile','-ExecutionPolicy','Bypass','-Command',". '"+path.join(__dirname,'../shell-shortcut.ps1').replaceAll("'","''")+"';$s=New-PetShortcut '"+link.replaceAll("'","''")+"';@{target=$s.TargetPath;args=$s.Arguments;icon=$s.IconLocation}|ConvertTo-Json -Compress"],{encoding:'utf8',windowsHide:true});
     const value=JSON.parse(result);assert.equal(value.args,'--launch-client');assert.equal(value.target,executable);
     assert.equal(value.icon,path.join(root,'build','codex-withu.ico')+',0');
   }
@@ -59,14 +59,15 @@ test('joint launcher dialog respects cancellation and forwards the selected dire
   assert.equal((await createClientLauncherWithDialogs({...options,dialog:{showMessageBox:async()=>({response:2})}})).canceled,true);
 });
 test('uninstall removes recorded custom-folder launchers only when they still target this installation',{skip:process.platform!=='win32'},t=>{
-  const dir=fixture(t),root=path.join(dir,'installed','resources','app'),directory=path.join(dir,'links'),dataDir=path.join(dir,'data');
+  const dir=fixture(t),root=path.join(dir,'installed','resources','app'),directory=path.join(dir,'links 中文 🌊'),dataDir=path.join(dir,'data');
   fs.mkdirSync(path.join(root,'build'),{recursive:true});fs.mkdirSync(directory);fs.mkdirSync(dataDir);
   const executable=path.join(dir,'installed','pet-with-you.exe');fs.writeFileSync(executable,'fixture');
+  fs.copyFileSync(path.resolve(__dirname,'../shell-shortcut.ps1'),path.join(root,'shell-shortcut.ps1'));
   fs.copyFileSync(path.resolve(__dirname,'../build/codex-withu.ico'),path.join(root,'build/codex-withu.ico'));
   const options={dataDir,root,executable,packaged:true,directory,target:{kind:'appId',appId:'Fixture.Package!App'}};
   const own=createClientLauncher(options),changed=createClientLauncher(options);
   const {execFileSync}=require('node:child_process'),quote=s=>"'"+s.replaceAll("'","''")+"'";
-  execFileSync('powershell.exe',['-NoProfile','-Command',`$s=(New-Object -ComObject WScript.Shell).CreateShortcut(${quote(changed.file)});$s.TargetPath=${quote(process.execPath)};$s.Save()`],{windowsHide:true});
+  execFileSync('powershell.exe',['-NoProfile','-ExecutionPolicy','Bypass','-Command',`. ${quote(path.join(__dirname,'../shell-shortcut.ps1'))};$s=New-PetShortcut ${quote(changed.file)};$s.TargetPath=${quote(process.execPath)};$s.Save()`],{windowsHide:true});
   execFileSync('powershell.exe',['-NoProfile','-ExecutionPolicy','Bypass','-File',path.resolve(__dirname,'../cleanup-startup.ps1'),'-Root',root],{windowsHide:true,env:{...process.env,PET_TEST_DATA_DIR:dataDir}});
   assert.equal(fs.existsSync(own.file),false);assert.equal(fs.existsSync(changed.file),true);
 });

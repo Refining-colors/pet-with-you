@@ -12,12 +12,21 @@ if errorlevel 1 (
   if /i not "%~1"=="--no-shortcut" if /i not "%~1"=="--shortcut" pause
   exit /b 1
 )
-call npm ci --cache .npm-cache
+where npm >nul 2>nul
+if errorlevel 1 (
+  echo npm is missing. Reinstall Node.js with npm and PATH options enabled.
+  if /i not "%~1"=="--no-shortcut" if /i not "%~1"=="--shortcut" pause
+  exit /b 1
+)
+echo [1/3] Downloading dependencies and Electron. The first run may take several minutes.
+echo If downloads fail or stall, see docs\TROUBLESHOOTING.md.
+call npm ci --include=dev --foreground-scripts --cache .npm-cache
 if errorlevel 1 (
   echo Dependency installation failed. Check the output above.
   if /i not "%~1"=="--no-shortcut" if /i not "%~1"=="--shortcut" pause
   exit /b 1
 )
+echo [2/3] Checking the local installation...
 node scripts\doctor.cjs
 if errorlevel 1 (
   echo Installation is incomplete. See docs\TROUBLESHOOTING.md.
@@ -26,7 +35,7 @@ if errorlevel 1 (
 )
 if /i "%~1"=="--no-shortcut" goto ready
 if /i "%~1"=="--shortcut" goto shortcut
-choice /c YN /n /m "Create a desktop shortcut? [Y/N]: "
+choice /c YN /n /m "[3/3] Create a desktop shortcut? [Y/N]: "
 if errorlevel 2 goto ready
 :shortcut
 powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%~dp0scripts\create-shortcut.ps1"

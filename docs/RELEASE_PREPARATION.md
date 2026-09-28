@@ -1,6 +1,6 @@
 # GitHub 发布准备
 
-项目名已确定为 **pet-with-you**。仓库已由维护者创建：[Refining-colors/pet-with-you](https://github.com/Refining-colors/pet-with-you)。已验证 HTTPS/Git 读取，目前为空仓库；未上传源码，推送认证尚未验证。
+项目名已确定为 **pet-with-you**。仓库已由维护者创建：[Refining-colors/pet-with-you](https://github.com/Refining-colors/pet-with-you)。源码已通过 HTTPS 推送，远端提交为 `52656c6`，ZIP 下载可用；尚无公开 Release 安装包。首次 Actions 发现非中文 Windows 的快捷方式路径问题，本轮已在源码修复，云端复验需待本轮提交推送后进行。
 
 已建立独立 `pet-with-you` 源码目录，用于本机 Git 版本管理；日常软件运行于安装目录，历史源码和视频另行保留。开发预览使用独立配置，操作见 [源码工作区指南](WORKSPACE.md)。初始化和本机提交不会自动推送 GitHub。
 
@@ -17,7 +17,7 @@
 | 动画/录屏宣传 | [MEDIA_GUIDE](MEDIA_GUIDE.md)、Record-Demo.cmd | 自动生成演示和单独动作导出已实现 |
 | 原作关系及素材许可 | [ATTRIBUTION](../ATTRIBUTION.md)、LICENSE.upstream | 保留上游来源和条款 |
 | 开发说明 / AI 配置入口 | [CONTRIBUTING](../CONTRIBUTING.md)、[AGENTS](../AGENTS.md)、[ARCHITECTURE](ARCHITECTURE.md) | 已准备 |
-| 反馈模板与基础检查 | .github/ISSUE_TEMPLATE、PR 模板、Windows 自动测试工作流 | 已准备，云端工作流尚未实际运行 |
+| 反馈模板与基础检查 | .github/ISSUE_TEMPLATE、PR 模板、Windows 自动测试工作流 | 已运行；首次快捷方式 Unicode 路径失败，本轮修复后待云端复验 |
 | 数据安全与更新记录 | [SECURITY](../SECURITY.md)、[CHANGELOG](../CHANGELOG.md) | 已准备 |
 | 预览安装包与校验值 | [PACKAGING](PACKAGING.md)、[RELEASE_CHECK](RELEASE_CHECK.md) | 本地 alpha 预览；公开分发与签名待办 |
 
@@ -28,15 +28,15 @@
 - 维护者已确定为 Refining-colors，仓库地址已确定。
 - 新增代码已采用 MIT，保留上游 MIT 声明。代码 MIT 不覆盖素材的非商用限制。
 - 字体及其他第三方资源的分发授权：`assets/fonts/上首软糖体.ttf` 等随上游带来的资源，需要确认具体字体授权；上游总体声明不能替代字体权利人的授权。
-- 首个预览为 `0.1.0-alpha.1`，当前迭代为 `0.1.0-alpha.3`；尚未公开推送或发布。
+- 首个预览为 `0.1.0-alpha.1`，当前迭代为 `0.1.0-alpha.3`；源码已公开推送，EXE Release 尚未发布。
 
 托盘保留“关于 pet-with-you”，点击直接打开本项目仓库，不再单列原作入口；维护者为 Refining-colors，原作信息保留在设置页折叠致谢与文档中。普通快捷方式名称为 `pet-with-u`，项目名称不变。历史数据目录和 Startup 入口保留旧名以兼容升级。
 
-当前暂停重新打包，上传仓库前统一更新版本与安装包。日常安装目录已直接同步最新资源；现有 alpha.3 安装器仍仅作为上次安装验证与回退产物，不代表最新源码，发布前需要重新构建与验收。
+当前暂停重新打包，发布 EXE 前统一更新版本与安装包。日常安装目录已直接同步最新资源；现有 alpha.3 安装器仍仅作为上次安装验证与回退产物，不代表最新源码，发布前需要重新构建与验收。
 
 ## 发布验收清单
 
-- [ ] 上传前重新打包并验证 `Codex withu` 的首次连接提示、自选目录、独立图标、联合启动和卸载清理；现存 alpha.3 包不含这些源码更新。
+- [ ] 发布安装包前重新打包并验证 `Codex withu` 的首次连接提示、自选目录、独立图标、联合启动和卸载清理；现存 alpha.3 包不含这些源码更新。
 - [x] 名称、源码包名、README 和主要显示文字统一。
 - [x] 运行代码检查个人机器绝对路径，清理无用研究文件和旧验证入口。
 - [x] 隔离自动测试、文档链接检查、当前 Windows 桌面界面验证。
@@ -52,7 +52,8 @@
 - [ ] 字体/配套素材分发权利核实（本轮暂缓）。
 - [ ] 真正发布时执行源码导出并人工检查，确保没有个人配置、密钥、私密截图或私人字体。
 - [x] 创建 GitHub 仓库并补全主页、问题反馈链接。
-- [ ] 首次推送、验证 GitHub Actions、发布 Releases，并开启私密漏洞报告。
+- [x] 首次推送源码，验证远端提交与 ZIP 下载。
+- [ ] 推送本轮修复后复验 GitHub Actions，再准备 Releases；私密漏洞报告另行配置。
 - [ ] 视频附件上传后再将链接写入 README；发布说明保留原作链接。
 
 此前三个源码快照只保留在原日常目录作为本机备份，没有复制进新仓库。`node_modules/` 为本机依赖，`.npm-cache/` 为本机缓存，均不应上传。

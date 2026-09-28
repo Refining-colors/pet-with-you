@@ -16,6 +16,7 @@ pet-with-you/                 # 独立源码仓库；实际路径仍可自行选
   preferences.cjs / appearance.cjs / positions.cjs
                              # 设置、字体和位置持久化
   autostart.cjs / startup-watch.ps1 # 登录时一次性启动，保留旧文件名兼容
+  shell-shortcut.ps1         # 共享 Unicode Windows 快捷方式读写
   client-launcher*.cjs / launch-detached.ps1 # 无常驻联动入口、Explorer 独立启动
   fullscreen-watch.ps1       # 桌宠运行期间的窗口策略与退出检测
   runtime/                   # 宠物窗口、动画、鼠标与反馈气泡

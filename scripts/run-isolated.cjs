@@ -15,13 +15,13 @@ for (const key of ['ELECTRON_RUN_AS_NODE', 'DSH_PET_HOST_PID', 'DSH_PET_BRIDGE',
 env[mode === 'test' ? 'PET_INTEGRATION_VERIFY' : 'PET_DEMO_RECORD'] = '1';
 const child = spawn(require('electron'), [root], { cwd: root, env, windowsHide: true, stdio: ['ignore', 'ignore', 'pipe'] });
 let errors = '', timedOut = false;
-child.stderr.on('data', bytes => { errors = (errors + bytes).slice(-16000); });
-const timer = setTimeout(() => { timedOut = true; child.kill(); }, mode === 'test' ? 240000 : 90000);
+child.stderr.on('data', bytes => { errors = (errors + bytes).slice(-16000); if(mode==='demo')for(const line of bytes.toString().split('\n'))if(line.startsWith('Rendered demo scene'))console.log(line); });
+const timer = setTimeout(() => { timedOut = true; child.kill(); }, mode === 'test' ? 240000 : 1800000);
 child.on('error', () => { console.error('Electron could not start. Run Install-Pet.cmd first.'); });
 child.on('close', code => {
   clearTimeout(timer);
   fs.rmSync(data, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
   if (code || timedOut) console.error(errors.split('\n').filter(line => !/configUrl=|127\.0\.0\.1|%2F/.test(line)).slice(-25).join('\n'));
-  console.log(mode === 'demo' ? 'Demo output: media-output/' : 'UI verification finished.');
+  console.log(code || timedOut ? (mode === 'demo' ? 'Demo generation failed.' : 'UI verification failed.') : (mode === 'demo' ? 'Demo output: media-output/demo-4k/' : 'UI verification passed.'));
   process.exitCode = code || (timedOut ? 1 : 0);
 });
