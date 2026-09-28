@@ -67,7 +67,7 @@ try {
     }
     $petHookCommand = '"' + (Join-Path $petInstall 'resources\app\hook.cmd').Replace('\', '/') + '"'
     $petHooks = @{ hooks = @{ Stop = @(@{ hooks = @(@{type='command'; command=$petHookCommand}, @{type='command'; command='echo fixture-unrelated'}) }) } } | ConvertTo-Json -Depth 8
-    Set-Content -LiteralPath $petHooksPath -Value $petHooks -Encoding Ascii
+    [IO.File]::WriteAllText($petHooksPath, $petHooks, (New-Object Text.UTF8Encoding($false)))
     if ($petShortcut) {
       $petBefore = (Get-FileHash -LiteralPath $petExe -Algorithm SHA256).Hash
       $petIcon = Join-Path $petInstall 'uninstallerIcon.ico'
@@ -76,14 +76,14 @@ try {
         $petProcess = Start-Process -FilePath $Installer -ArgumentList "$petOptions /D=$petInstall" -WindowStyle Hidden -Wait -PassThru
         if ($petProcess.ExitCode -ne 60001) { throw 'Read-only icon did not stop reinstallation.' }
       } finally { (Get-Item -LiteralPath $petIcon).IsReadOnly = $false }
-      if ((Get-FileHash -LiteralPath $petExe -Algorithm SHA256).Hash -ne $petBefore -or (Get-Content -LiteralPath $petHooksPath -Raw).Trim() -ne $petHooks.Trim()) { throw 'Failed preflight damaged the existing installation.' }
+      if ((Get-FileHash -LiteralPath $petExe -Algorithm SHA256).Hash -ne $petBefore -or (Get-Content -LiteralPath $petHooksPath -Raw -Encoding UTF8).Trim() -ne $petHooks.Trim()) { throw 'Failed preflight damaged the existing installation.' }
       Write-Output 'PASS: failed reinstall preserves the installed program and Hooks.'
       $petProcess = Start-Process -FilePath $Installer -ArgumentList "$petOptions /D=$petInstall" -WindowStyle Hidden -Wait -PassThru
-      if ($petProcess.ExitCode -ne 0 -or (Get-Content -LiteralPath $petHooksPath -Raw).Trim() -ne $petHooks.Trim()) { throw 'Reinstallation changed existing Hooks.' }
+      if ($petProcess.ExitCode -ne 0 -or (Get-Content -LiteralPath $petHooksPath -Raw -Encoding UTF8).Trim() -ne $petHooks.Trim()) { throw 'Reinstallation changed existing Hooks.' }
       Write-Output 'PASS: same-version reinstall preserves Hooks.'
     }
     Uninstall-TestPet
-    $petRemaining = Get-Content -LiteralPath $petHooksPath -Raw | ConvertFrom-Json
+    $petRemaining = Get-Content -LiteralPath $petHooksPath -Raw -Encoding UTF8 | ConvertFrom-Json
     if (@($petRemaining.hooks.Stop[0].hooks).Count -ne 1 -or $petRemaining.hooks.Stop[0].hooks[0].command -ne 'echo fixture-unrelated') { throw 'Uninstaller did not remove only its own Hooks.' }
     if ((Test-Path -LiteralPath $petDesktop) -or (Test-Path -LiteralPath $petMenu)) { throw 'Uninstaller left its shortcut behind.' }
     if((Test-Path -LiteralPath $petJointDesktop) -or (Test-Path -LiteralPath $petJointMenu)){throw 'Uninstaller left its joint launcher behind.'}
