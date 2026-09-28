@@ -15,7 +15,7 @@ module.exports=async({service,openSettings,getSettings})=>{
   await run(`(()=>{
     window.edit=(id,value)=>{const input=document.getElementById(id);if(input.type==='checkbox')input.checked=value;else input.value=value;input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));};
     if(document.querySelector('#sourceDialog').open)document.querySelector('#chooseSourceLater').click();
-    selectTab('basic');edit('alwaysOnTop',false);edit('quotaAfterTurn',true);edit('quotaMode','permanent');edit('quotaSeconds','37');edit('replySeconds','29');edit('apiWhisperInterval','321');edit('apiWhisperProbability','73');edit('collision',true);
+    selectTab('basic');edit('windowMode','normal');edit('quotaAfterTurn',true);edit('quotaMode','permanent');edit('quotaSeconds','37');edit('replySeconds','29');edit('apiWhisperInterval','321');edit('apiWhisperProbability','73');edit('collision',true);
     const name=document.querySelector('#pets input[type=text]');name.value='Autosaved pet';name.dispatchEvent(new Event('change',{bubbles:true}));
     edit('apiProfileName','Autosave API');edit('apiBaseUrl','https://autosave.example.test/v1');edit('apiModel','test-model');edit('apiKey','autosave-private-fixture');
     edit('proxyProfileName','Autosave query');edit('proxyName','Fixture query');edit('proxyEndpoint','https://autosave.example.test/balance');edit('credential','manual');edit('proxyKey','query-private-fixture');edit('valuePath','data.balance');

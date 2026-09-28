@@ -1,13 +1,15 @@
 const {spawn}=require('node:child_process');
 const readline=require('node:readline');
 const path=require('node:path');
+const {windowMode}=require('./window-mode.cjs');
 function shouldHide(preferences,state,bounds){
-  if(preferences.fullscreenMode==='never'||!state?.fullscreen||!state.monitor)return false;
-  if(preferences.fullscreenMode==='except-gpt'&&/^(codex|chatgpt)$/i.test(state.process||''))return false;
+  const mode=windowMode(preferences);
+  if(!['fullscreen','gpt'].includes(mode)||!state?.fullscreen||!state.monitor)return false;
+  if(mode==='gpt'&&/^(codex|chatgpt)$/i.test(state.process||''))return false;
   const m=state.monitor;return bounds.x<m.x+m.width&&bounds.x+bounds.width>m.x&&bounds.y<m.y+m.height&&bounds.y+bounds.height>m.y;
 }
 class WindowPolicy{
-  constructor({getWindows,getPreferences,toPhysical=b=>b,onState=()=>{}}){Object.assign(this,{getWindows,getPreferences,toPhysical,onState});this.state={};this.hidden=new Set();this.manualHidden=false;}
+  constructor({getWindows,getPreferences,toPhysical=b=>b,onState=()=>{},now=Date.now}){Object.assign(this,{getWindows,getPreferences,toPhysical,onState,now});this.state={};this.hidden=new Set();this.manualHidden=false;this.revealUntil=0;}
   start(){
     this.child=spawn('powershell.exe',['-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',path.join(__dirname,'fullscreen-watch.ps1')],{windowsHide:true,stdio:['ignore','pipe','ignore']});
     const child=this.child;
@@ -28,16 +30,21 @@ class WindowPolicy{
   }
   apply(){
     const p=this.getPreferences();
+    const mode=windowMode(p);
+    if(this.lastMode!==undefined&&this.lastMode!==mode)this.revealUntil=0;
+    this.lastMode=mode;
+    const revealed=this.now()<this.revealUntil;
+    const top=revealed||mode==='top'||mode==='fullscreen'||(mode==='gpt'&&/^(codex|chatgpt)$/i.test(this.state.process||''));
     for(const w of this.getWindows()){
       if(w.isDestroyed())continue;
-      const topChanged=w.isAlwaysOnTop()!==p.alwaysOnTop;
-      if(topChanged)w.setAlwaysOnTop(p.alwaysOnTop,'floating');
-      const hide=this.manualHidden||shouldHide(p,this.state,this.toPhysical(w.getBounds()));
+      const topChanged=w.isAlwaysOnTop()!==top;
+      if(topChanged)w.setAlwaysOnTop(top,'floating');
+      const hide=this.manualHidden||(!revealed&&shouldHide(p,this.state,this.toPhysical(w.getBounds())));
       if(hide){if(w.isVisible()){this.hidden.add(w);w.hide();}}
       else {
         const restored=this.hidden.delete(w);
         if(restored)w.showInactive();
-        if(p.alwaysOnTop&&w.isVisible()&&(this.raisePending||restored||topChanged)){
+        if(top&&w.isVisible()&&(this.raisePending||restored||topChanged)){
           w.setAlwaysOnTop(true,'floating');
           w.moveTop();
         }
@@ -46,7 +53,13 @@ class WindowPolicy{
     for(const w of this.hidden)if(w.isDestroyed())this.hidden.delete(w);
     this.raisePending=false;
   }
-  setManualHidden(value){this.manualHidden=value;this.apply();}
+  revealOnce(){
+    // A bounded override survives the tray's foreground transitions without changing saved rules.
+    this.manualHidden=false;this.revealUntil=this.now()+8000;this.raisePending=true;
+    for(const w of this.getWindows())if(!w.isDestroyed()&&!w.isVisible())this.hidden.add(w);
+    this.apply();
+  }
+  setManualHidden(value){this.manualHidden=value;this.revealUntil=0;this.apply();}
   requestShow(w){this.hidden.add(w);this.apply();}
   close(){clearInterval(this.timer);const child=this.child;this.child=null;child?.kill();}
 }

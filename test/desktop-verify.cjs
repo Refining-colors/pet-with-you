@@ -2,7 +2,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path');
 const {BrowserWindow,app}=require('electron');
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-module.exports=async function verify({service,openSettings,getSettings,largeTrayMenu}){
+module.exports=async function verify({service,openSettings,getSettings,largeTrayMenu,getTray}){
   fs.mkdirSync(path.join(__dirname,'../qa-output'),{recursive:true});
   const errors=[];
   const pet=()=>BrowserWindow.getAllWindows().find(w=>w!==getSettings());
@@ -135,9 +135,15 @@ module.exports=async function verify({service,openSettings,getSettings,largeTray
     await settings.webContents.executeJavaScript(`document.querySelector('#disableRoaming').checked=false;document.querySelector('#disableRoaming').onchange()`);
     const menu=await pet().webContents.executeJavaScript(`(()=>{const s=sprites[0];s.justDragged=false;s.onContextMenu({preventDefault(){},clientX:300,clientY:300});return document.querySelector('.dsh-pet-menu').textContent;})()`);
     assert.ok(menu.includes('窗口设置')&&menu.includes('碎碎念')&&menu.includes('对话'));
-    const top=(await request('/preferences')).alwaysOnTop;
+    await request('/preferences',{windowMode:'normal'});
     await pet().webContents.executeJavaScript(`sprites[0].onMenuAction({action:'toggle-top'})`);await sleep(500);
-    assert.equal(pet().isAlwaysOnTop(),!top);
+    assert.equal(pet().isAlwaysOnTop(),true);
+    assert.equal((await request('/preferences')).windowMode,'top');
+    await pet().webContents.executeJavaScript(`sprites[0].onMenuAction({action:'fullscreen-never'})`);await sleep(500);
+    assert.equal(pet().isAlwaysOnTop(),false);
+    pet().hide();getTray().emit('click');
+    assert.equal(pet().isVisible(),true);assert.equal(pet().isAlwaysOnTop(),true);
+    assert.equal((await request('/preferences')).windowMode,'normal','tray reveal must not change saved policy');
     assert.equal((await request('/preferences')).mode,'pet');
     assert.ok(!service.client.child);
     assert.deepEqual(errors,[]);

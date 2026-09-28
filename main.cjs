@@ -50,7 +50,7 @@ if(!app.requestSingleInstanceLock()){app.quit();}else{
   function trayItems(){const items=[
     {label:'打开桌宠控制台',click:openSettings},
     ...(service?.preferences.value.mode==='connected'?[{label:'检查客户端联动',click:()=>prepareConnection().catch(console.error)}]:[]),
-    {label:'显示宠物',click:()=>policy?.setManualHidden(false)},
+    {label:'显示宠物',click:revealPet},
     {label:'隐藏宠物',click:()=>policy?.setManualHidden(true)},
     {label:'隐藏托盘图标',click:()=>setTrayVisible(false)},{label:'打开配置与宠物素材目录',click:()=>shell.openPath(dataDir)},
     {type:'separator'},{label:'关于 pet-with-you',click:()=>shell.openExternal(REPOSITORY_URL).catch(()=>dialog.showErrorBox('无法打开项目主页','请检查默认浏览器设置，项目地址：'+REPOSITORY_URL))},{label:'退出桌宠',click:()=>app.quit()}];return items;}
@@ -58,9 +58,10 @@ if(!app.requestSingleInstanceLock()){app.quit();}else{
   function setTrayVisible(value){
     trayVisible=value;
     settingsStore.set('tray',{visible:value});
-    if(value){if(!tray||tray.isDestroyed()){tray=new Tray(nativeImage.createFromPath(path.join(__dirname,'tray.png')).resize({width:24,height:24}));tray.on('double-click',openSettings);tray.on('right-click',()=>largeTrayMenu.show());}tray.setToolTip(PRODUCT_NAME+(developmentPreview?' · 开发预览':'')+' · 随机播放 / 右键点播');}
+    if(value){if(!tray||tray.isDestroyed()){tray=new Tray(nativeImage.createFromPath(path.join(__dirname,'tray.png')).resize({width:24,height:24}));tray.on('click',revealPet);tray.on('double-click',openSettings);tray.on('right-click',()=>largeTrayMenu.show());}tray.setToolTip(PRODUCT_NAME+(developmentPreview?' · 开发预览':'')+' · 随机播放 / 右键点播');}
     else if(tray&&!tray.isDestroyed()){tray.destroy();tray=null;}
   }
+  function revealPet(){startPets();policy?.revealOnce();}
   function startPets(){if(!runtimeStarted){runtimeStarted=true;process.env.PET_CONNECT_ONLY='0';require('./runtime/main.js').recreate();}}
   async function prepareConnection(){await fetch(service.base+'/connect',{method:'POST'});openSettings();}
   function reviewHooks(){
@@ -149,7 +150,7 @@ if(!app.requestSingleInstanceLock()){app.quit();}else{
       const trayState=settingsStore.get('tray',{visible:true}).visible!==false;
       setTrayVisible(trayState);
       if(process.env.PET_DEMO_RECORD==='1')require('./scripts/record-demo.cjs')({service});
-      if(process.env.PET_INTEGRATION_VERIFY==='1')require('./test/desktop-verify.cjs')({service,openSettings,getSettings:()=>settings,largeTrayMenu});
+      if(process.env.PET_INTEGRATION_VERIFY==='1')require('./test/desktop-verify.cjs')({service,openSettings,getSettings:()=>settings,largeTrayMenu,getTray:()=>tray});
       if(process.argv.includes('--settings')||(app.isPackaged&&!process.argv.includes('--background')))openSettings();
       if(process.argv.includes('--connect')||process.argv.includes('--connect-only'))prepareConnection().catch(console.error);
 

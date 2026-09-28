@@ -69,7 +69,7 @@ module.exports = async function recordDemo({ service }) {
       const filter=`[1:v]scale=1920:1080:flags=lanczos[pet];[0:v][pet]overlay=1700:${y}:shortest=1,format=yuv420p`;
       const input=['-loop','1','-framerate','24','-i',plateFile,'-stream_loop','-1','-c:v','libvpx-vp9','-i',path.join(root,'assets/webm',scene.animation+'.webm')];
       await ffmpeg(command,[...input,'-filter_complex',filter,'-t',String(process.env.PET_DEMO_PREVIEW==='1'?1:scene.seconds),'-r','24','-c:v','libx264','-preset','veryfast','-crf','18','-threads','4','-movflags','+faststart',path.join(output,scene.id+'.mp4')]);
-      await ffmpeg(command,['-ss',process.env.PET_DEMO_PREVIEW==='1'?'0.5':'3','-i',path.join(output,scene.id+'.mp4'),'-frames:v','1',path.join(output,scene.id+'.png')]);
+      await ffmpeg(command,['-ss',process.env.PET_DEMO_PREVIEW==='1'?'0.5':String(Math.min(3,scene.seconds/2)),'-i',path.join(output,scene.id+'.mp4'),'-frames:v','1',path.join(output,scene.id+'.png')]);
       console.error('Rendered demo scene '+(index+1)+'/'+selected.length+': '+scene.id);
     }
     const list=path.join(output,'concat.txt');fs.writeFileSync(list,selected.map(scene=>`file '${scene.id}.mp4'`).join('\n'));

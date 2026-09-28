@@ -1091,10 +1091,10 @@ class PetSprite {
     // 碎碎念/对话项无条件显示：手动触发不受 whisperEnabled 限制（该字段只影响自动周期轮询）
     const p=window.petPreferences||{};
     const tools = [{ label: '桌宠设置', action: 'open-site' },{ label:'窗口设置',children:[
-      {label:(p.alwaysOnTop?'✓ ':'')+'始终置顶',action:'toggle-top'},
-      {label:(p.fullscreenMode==='all'?'✓ ':'')+'全屏隐藏',action:'fullscreen-all'},
-      {label:(p.fullscreenMode==='except-gpt'?'✓ ':'')+'全屏隐藏 GPT 除外',action:'fullscreen-except'},
-      {label:(p.fullscreenMode==='never'?'✓ ':'')+'全屏不隐藏',action:'fullscreen-never'}
+      {label:(p.windowMode==='top'?'✓ ':'')+'始终置顶',action:'toggle-top'},
+      {label:(p.windowMode==='fullscreen'?'✓ ':'')+'全屏隐藏',action:'fullscreen-all'},
+      {label:(p.windowMode==='gpt'?'✓ ':'')+'GPT置顶，其余全屏隐藏',action:'fullscreen-except'},
+      {label:(p.windowMode==='normal'?'✓ ':'')+'普通显示',action:'fullscreen-never'}
     ]},{ label:'显示托盘图标',action:'show-tray' }];
     tools.push({ label: '查看额度 / 用量', action: 'show-balance' });
     {
@@ -1132,7 +1132,7 @@ class PetSprite {
       return;
     }
     if(/^fullscreen-|toggle-top$/.test(leaf.action||'')){
-      const patch=leaf.action==='toggle-top'?{alwaysOnTop:!window.petPreferences.alwaysOnTop}:leaf.action==='fullscreen-all'?{fullscreenMode:'all'}:leaf.action==='fullscreen-except'?{fullscreenMode:'except-gpt'}:{fullscreenMode:'never'};
+      const patch=leaf.action==='toggle-top'?{windowMode:'top'}:leaf.action==='fullscreen-all'?{windowMode:'fullscreen'}:leaf.action==='fullscreen-except'?{windowMode:'gpt'}:{windowMode:'normal'};
       fetch(BASE+'/preferences',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(patch)}).then(r=>r.json()).then(v=>window.petPreferences=v).catch(console.error);
       return;
     }

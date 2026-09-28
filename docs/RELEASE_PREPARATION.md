@@ -1,6 +1,6 @@
 # GitHub 发布准备
 
-项目名已确定为 **pet-with-you**。仓库已由维护者创建：[Refining-colors/pet-with-you](https://github.com/Refining-colors/pet-with-you)。源码已通过 HTTPS 推送，远端提交为 `52656c6`，ZIP 下载可用；尚无公开 Release 安装包。首次 Actions 发现非中文 Windows 的快捷方式路径问题，本轮已在源码修复，云端复验需待本轮提交推送后进行。
+项目名为 **pet-with-you**，仓库为 [Refining-colors/pet-with-you](https://github.com/Refining-colors/pet-with-you)。源码、ZIP 下载和 Windows 自动检查已验证；首次公开安装包为 [0.1.0-alpha.5](https://github.com/Refining-colors/pet-with-you/releases/tag/v0.1.0-alpha.5)。安装包在干净 Windows 环境构建并完成安装/卸载验收，详见 [检查记录](RELEASE_CHECK.md)。
 
 已建立独立 `pet-with-you` 源码目录，用于本机 Git 版本管理；日常软件运行于安装目录，历史源码和视频另行保留。开发预览使用独立配置，操作见 [源码工作区指南](WORKSPACE.md)。初始化和本机提交不会自动推送 GitHub。
 
@@ -17,7 +17,7 @@
 | 动画/录屏宣传 | [MEDIA_GUIDE](MEDIA_GUIDE.md)、Record-Demo.cmd | 自动生成演示和单独动作导出已实现 |
 | 原作关系及素材许可 | [ATTRIBUTION](../ATTRIBUTION.md)、LICENSE.upstream | 保留上游来源和条款 |
 | 开发说明 / AI 配置入口 | [CONTRIBUTING](../CONTRIBUTING.md)、[AGENTS](../AGENTS.md)、[ARCHITECTURE](ARCHITECTURE.md) | 已准备 |
-| 反馈模板与基础检查 | .github/ISSUE_TEMPLATE、PR 模板、Windows 自动测试工作流 | 已运行；首次快捷方式 Unicode 路径失败，本轮修复后待云端复验 |
+| 反馈模板与基础检查 | .github/ISSUE_TEMPLATE、PR 模板、Windows 自动测试工作流 | 本机与云端验证通过，补充独立安装包发布工作流 |
 | 数据安全与更新记录 | [SECURITY](../SECURITY.md)、[CHANGELOG](../CHANGELOG.md) | 已准备 |
 | 预览安装包与校验值 | [PACKAGING](PACKAGING.md)、[RELEASE_CHECK](RELEASE_CHECK.md) | 本地 alpha 预览；公开分发与签名待办 |
 
@@ -32,11 +32,11 @@
 
 托盘保留“关于 pet-with-you”，点击直接打开本项目仓库，不再单列原作入口；维护者为 Refining-colors，原作信息保留在设置页折叠致谢与文档中。普通快捷方式名称为 `pet-with-u`，项目名称不变。历史数据目录和 Startup 入口保留旧名以兼容升级。
 
-当前暂停重新打包，发布 EXE 前统一更新版本与安装包。日常安装目录已直接同步最新资源；现有 alpha.3 安装器仍仅作为上次安装验证与回退产物，不代表最新源码，发布前需要重新构建与验收。
+alpha.5 已统一版本与最新程序内容。日常安装目录和本机构建测试分开，发布不会自动替维护者升级日常软件；历史 alpha.3 安装器仅作本机回退，不能覆盖新版。
 
 ## 发布验收清单
 
-- [ ] 发布安装包前重新打包并验证 `Codex withu` 的首次连接提示、自选目录、独立图标、联合启动和卸载清理；现存 alpha.3 包不含这些源码更新。
+- [x] 重新构建 alpha.5，验证 `Codex withu` 入口、独立图标、联合启动与卸载清理，首次提示与自选目录另有本机 UI 验证。
 - [x] 名称、源码包名、README 和主要显示文字统一。
 - [x] 运行代码检查个人机器绝对路径，清理无用研究文件和旧验证入口。
 - [x] 隔离自动测试、文档链接检查、当前 Windows 桌面界面验证。
@@ -49,11 +49,11 @@
 - [ ] 检查不同 Windows 显示缩放、多显示器、非默认安装渠道和正常退出保存。
 - [ ] 实际登录重启验证开机自启动、Codex withu 联合启动、随客户端关闭和目录移动后的 Hooks 更新。
 - [x] 新增代码选择 MIT，保留上游版权与许可。
-- [ ] 字体/配套素材分发权利核实（本轮暂缓）。
-- [ ] 真正发布时执行源码导出并人工检查，确保没有个人配置、密钥、私密截图或私人字体。
+- [x] 公开安装包不附带第三方字体；角色按原作许可与署名约定分发。源码保留字体的单独授权仍待核对。
+- [x] 从版本标签构建并审计实际安装内容，排除个人配置、密钥、日志、私人字体及媒体实验；源码下载由同一 Git 标签提供。
 - [x] 创建 GitHub 仓库并补全主页、问题反馈链接。
 - [x] 首次推送源码，验证远端提交与 ZIP 下载。
-- [ ] 推送本轮修复后复验 GitHub Actions，再准备 Releases；私密漏洞报告另行配置。
+- [x] 推送并复验 GitHub Actions，构建公开预览 Release；私密漏洞报告另行配置。
 - [ ] 视频附件上传后再将链接写入 README；发布说明保留原作链接。
 
 此前三个源码快照只保留在原日常目录作为本机备份，没有复制进新仓库。`node_modules/` 为本机依赖，`.npm-cache/` 为本机缓存，均不应上传。

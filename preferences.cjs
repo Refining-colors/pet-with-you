@@ -1,7 +1,10 @@
 const fs=require('node:fs');
 const path=require('node:path');
-const defaults={disableEventResponse:false,quotaAfterTurn:false,quotaMode:'timed',quotaSeconds:10,whisperStreaming:true,autoWhisperProbability:50,ignoreAccountTimeouts:true,taskBasicFeedback:true,taskNativeFeedback:true,disableRoaming:false,mode:'pet',alwaysOnTop:true,fullscreenMode:'except-gpt',clickAction:'animation',actionSpeed:1.25,autostart:false,followClientClose:false,snapMode:'all',chatSource:'gpt',chatSourceChosen:false,replyMode:'timed',replySeconds:10,moduleOrder:{basic:[],gpt:[]}};
+const {modes,legacyMode}=require('./window-mode.cjs');
+const defaults={disableEventResponse:false,quotaAfterTurn:false,quotaMode:'timed',quotaSeconds:10,whisperStreaming:true,autoWhisperProbability:50,ignoreAccountTimeouts:true,taskBasicFeedback:true,taskNativeFeedback:true,disableRoaming:false,mode:'pet',windowMode:'gpt',alwaysOnTop:false,fullscreenMode:'except-gpt',clickAction:'animation',actionSpeed:1.25,autostart:false,followClientClose:false,snapMode:'all',chatSource:'gpt',chatSourceChosen:false,replyMode:'timed',replySeconds:10,moduleOrder:{basic:[],gpt:[]}};
 function validatePreferences(raw){
+  if(!Object.hasOwn(modes,raw.windowMode))throw new Error('窗口模式无效');
+  raw={...raw,...modes[raw.windowMode]};
   if(typeof raw.quotaAfterTurn!=='boolean')throw new Error('回合结束自动查询设置无效');
   if(!['timed','permanent'].includes(raw.quotaMode)||!Number.isFinite(raw.quotaSeconds)||raw.quotaSeconds<1||raw.quotaSeconds>3600)throw new Error('额度气泡停留设置无效');
   if(typeof raw.whisperStreaming!=='boolean')throw new Error('流式显示设置无效');
@@ -14,10 +17,10 @@ function validatePreferences(raw){
 
   if(!['gpt','api'].includes(raw.chatSource)||typeof raw.chatSourceChosen!=='boolean')throw new Error('请选择聊天服务来源');
   if(!['pet','connected'].includes(raw.mode)||typeof raw.alwaysOnTop!=='boolean'||!['never','all','except-gpt'].includes(raw.fullscreenMode)||!['animation','quota'].includes(raw.clickAction)||!Number.isFinite(raw.actionSpeed)||raw.actionSpeed<0.5||raw.actionSpeed>2||typeof raw.autostart!=='boolean'||typeof raw.followClientClose!=='boolean'||!['none','all','bottom','taskbar','gpt'].includes(raw.snapMode))throw new Error('窗口或互动设置无效');
-  return {disableEventResponse:raw.disableEventResponse,quotaAfterTurn:raw.quotaAfterTurn,quotaMode:raw.quotaMode,quotaSeconds:raw.quotaSeconds,whisperStreaming:raw.whisperStreaming,autoWhisperProbability:raw.autoWhisperProbability,ignoreAccountTimeouts:raw.ignoreAccountTimeouts,taskBasicFeedback:raw.taskBasicFeedback,taskNativeFeedback:raw.taskNativeFeedback,disableRoaming:raw.disableRoaming,replyMode:raw.replyMode,replySeconds:raw.replySeconds,moduleOrder,chatSource:raw.chatSource,chatSourceChosen:raw.chatSourceChosen,mode:raw.mode,alwaysOnTop:raw.alwaysOnTop,fullscreenMode:raw.fullscreenMode,clickAction:raw.clickAction,actionSpeed:raw.actionSpeed,autostart:raw.autostart,followClientClose:raw.followClientClose,snapMode:raw.snapMode};
+  return {disableEventResponse:raw.disableEventResponse,quotaAfterTurn:raw.quotaAfterTurn,quotaMode:raw.quotaMode,quotaSeconds:raw.quotaSeconds,whisperStreaming:raw.whisperStreaming,autoWhisperProbability:raw.autoWhisperProbability,ignoreAccountTimeouts:raw.ignoreAccountTimeouts,taskBasicFeedback:raw.taskBasicFeedback,taskNativeFeedback:raw.taskNativeFeedback,disableRoaming:raw.disableRoaming,replyMode:raw.replyMode,replySeconds:raw.replySeconds,moduleOrder,chatSource:raw.chatSource,chatSourceChosen:raw.chatSourceChosen,mode:raw.mode,windowMode:raw.windowMode,alwaysOnTop:raw.alwaysOnTop,fullscreenMode:raw.fullscreenMode,clickAction:raw.clickAction,actionSpeed:raw.actionSpeed,autostart:raw.autostart,followClientClose:raw.followClientClose,snapMode:raw.snapMode};
 }
 class Preferences{
-  constructor(dir,initialMode=defaults.mode){this.store=new (require('./settings-store.cjs').SettingsStore)(dir);this.file=this.store.file;const saved=this.store.get('preferences',{});this.value=validatePreferences({...defaults,mode:initialMode,...saved});if(!this.store.has('preferences')||Object.hasOwn(saved,'followClientStart'))this.store.set('preferences',this.value);}
-  save(raw){const next=validatePreferences({...this.value,...raw});this.store.set('preferences',next);this.value=next;return this.value;}
+  constructor(dir,initialMode=defaults.mode){this.store=new (require('./settings-store.cjs').SettingsStore)(dir);this.file=this.store.file;const saved=this.store.get('preferences',{});this.value=validatePreferences({...defaults,mode:initialMode,...saved,windowMode:saved.windowMode??legacyMode({...defaults,...saved})});if(!this.store.has('preferences')||Object.hasOwn(saved,'followClientStart')||!saved.windowMode)this.store.set('preferences',this.value);}
+  save(raw){if(!Object.hasOwn(raw,'windowMode')&&(Object.hasOwn(raw,'alwaysOnTop')||Object.hasOwn(raw,'fullscreenMode')))raw={...raw,windowMode:legacyMode({...this.value,...raw})};const next=validatePreferences({...this.value,...raw});this.store.set('preferences',next);this.value=next;return this.value;}
 }
 module.exports={Preferences,defaults,validatePreferences};
