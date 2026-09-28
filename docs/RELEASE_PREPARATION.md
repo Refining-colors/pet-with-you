@@ -19,16 +19,16 @@
 | 开发说明 / AI 配置入口 | [CONTRIBUTING](../CONTRIBUTING.md)、[AGENTS](../AGENTS.md)、[ARCHITECTURE](ARCHITECTURE.md) | 已准备 |
 | 反馈模板与基础检查 | .github/ISSUE_TEMPLATE、PR 模板、Windows 自动测试工作流 | 本机与云端验证通过，补充独立安装包发布工作流 |
 | 数据安全与更新记录 | [SECURITY](../SECURITY.md)、[CHANGELOG](../CHANGELOG.md) | 已准备 |
-| 预览安装包与校验值 | [PACKAGING](PACKAGING.md)、[RELEASE_CHECK](RELEASE_CHECK.md) | 本地 alpha 预览；公开分发与签名待办 |
+| 预览安装包与校验值 | [PACKAGING](PACKAGING.md)、[RELEASE_CHECK](RELEASE_CHECK.md) | alpha.5 公开预览；签名待办 |
 
-维护者与仓库链接已填写；尚未提供正式下载版本，不添加虚构下载链接或维护者邮箱。
+维护者与仓库链接已填写；下载入口指向真实 Release。当前仍是预览版，不声称稳定版或提供虚构维护者邮箱。
 
 ## 发布前仍需决定
 
 - 维护者已确定为 Refining-colors，仓库地址已确定。
 - 新增代码已采用 MIT，保留上游 MIT 声明。代码 MIT 不覆盖素材的非商用限制。
-- 字体及其他第三方资源的分发授权：`assets/fonts/上首软糖体.ttf` 等随上游带来的资源，需要确认具体字体授权；上游总体声明不能替代字体权利人的授权。
-- 首个预览为 `0.1.0-alpha.1`，当前迭代为 `0.1.0-alpha.3`；源码已公开推送，EXE Release 尚未发布。
+- 字体及其他第三方资源的分发授权：`assets/fonts/上首软糖体.ttf` 等随上游带来的资源没有纳入 EXE 安装包；若后续要分发，需要确认具体字体授权，上游总体声明不能替代字体权利人的授权。
+- 首个本地预览为 `0.1.0-alpha.1`；alpha.4 用于构建候选，alpha.5 为首个公开 EXE 预览。
 
 托盘保留“关于 pet-with-you”，点击直接打开本项目仓库，不再单列原作入口；维护者为 Refining-colors，原作信息保留在设置页折叠致谢与文档中。普通快捷方式名称为 `pet-with-u`，项目名称不变。历史数据目录和 Startup 入口保留旧名以兼容升级。
 

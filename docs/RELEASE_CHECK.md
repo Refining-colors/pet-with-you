@@ -6,7 +6,9 @@
 - 隔离桌面 UI 验证通过，包括实际 Electron 窗口置顶、托盘单击事件、菜单切换及设置关闭保存。
 - 本地打包内容审计通过：351 个应用文件，排除个人数据、第三方字体及视频实验文件；安装版独立运行、106 段动画、图标和内置运行环境验收通过。
 - 23 份文档的 634 个本地链接有效，源码/暂存区/历史敏感模式扫描无失败，依赖审计无已知漏洞。
-- 干净 Windows 安装器复验由该版本的 Build Windows release 工作流执行，成功后才公开安装包。
+- [alpha.5 干净 Windows 安装器复验](https://github.com/Refining-colors/pet-with-you/actions/runs/36423869772)全部通过，随后公开 [预览版下载](https://github.com/Refining-colors/pet-with-you/releases/tag/v0.1.0-alpha.5)。覆盖带/不带桌面快捷方式、开始菜单图标、无外部 Node、同版重装及卸载数据保留。
+- 公开安装器大小 207,487,211 字节；GitHub 资产 SHA-256 为 `8778b665e1a0460605780e81097e15e0a87ab5a0b63baf00f54f9fdb9882c759`。未登录的公开 Release API 返回安装程序、校验文件及 INSTALL.txt。
+- 宣传预览为 67 秒 4K/24fps，完整解码 1608 帧通过；首页四张配图同步新视频，查询、任务均为演示数据。
 
 ## 0.1.0-alpha.4 安装包构建候选 · 2026-09-28
 
