@@ -1,0 +1,32 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>pet-with-you story film</title>
+<canvas width="3840" height="2160"></canvas>
+<script>
+const canvas=document.querySelector('canvas'),ctx=canvas.getContext('2d');
+window.drawPlate=async(scene,index,total,card)=>{
+ const g=ctx.createLinearGradient(0,0,3840,2160);g.addColorStop(0,'#f7fbff');g.addColorStop(.55,'#e5f3ff');g.addColorStop(1,'#b7d9f4');ctx.fillStyle=g;ctx.fillRect(0,0,3840,2160);
+ const glow=ctx.createRadialGradient(2820,1070,100,2820,1070,1550);glow.addColorStop(0,'#ffffffbf');glow.addColorStop(1,'#ffffff00');ctx.fillStyle=glow;ctx.fillRect(0,0,3840,2160);
+ const text=(value,x,y,size,color='#103f70',family='"Microsoft YaHei", sans-serif')=>{ctx.fillStyle=color;ctx.font=`${size}px ${family}`;ctx.fillText(value,x,y)};
+ text('GitHub 开源项目',184,178,59,'#306993');text('pet-with-you',178,304,94,'#0d3c69','Georgia, serif');
+ text(scene.kicker.replace(/^01  \/  /,''),184,700,49,'#3682b1');
+ scene.title.split('\n').forEach((line,i)=>text(line,175,950+i*175,135));
+ ctx.fillStyle='#338ac4';ctx.fillRect(184,1230,230,8);
+ scene.lines.forEach((line,i)=>text(line,184,1400+i*88,53,'#4f7d9f'));
+ if(card){
+  const picture=new Image();picture.src=card;await picture.decode();
+  const ratio=Math.min(1600/picture.width,900/picture.height),w=picture.width*ratio,h=picture.height*ratio;
+  ctx.drawImage(picture,2080+(1600-w)/2,180+(900-h)/2,w,h);
+ }else{
+  const label=scene.id==='end'?'从今天开始，一起。':scene.id==='hello'?'这就是实际运行的桌宠。':'每一种小动作，都能点播。';
+  text(label,2110,670,58,'#46779b');
+ }
+ const ground=card?1950:1700;
+ ctx.strokeStyle='#ffffffbb';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(2740,ground,580,49,0,0,Math.PI*2);ctx.stroke();
+ const chapter=index<5?'01  日常陪伴':index<7?'02  聊天与碎碎念':index===7?'03  服务商查询':index<11?'04  Codex 联动':'pet-with-you';
+ text(chapter,184,1945,42,'#48799d');
+ ctx.fillStyle='#a9cbe2';ctx.fillRect(184,1992,1360,5);ctx.fillStyle='#338ac4';ctx.fillRect(184,1992,1360*(index+1)/total,5);
+ text(card?'功能画面使用演示数据':'Windows 桌面小伙伴',184,2075,34,'#6386a1');
+ return canvas.toDataURL('image/png').split(',')[1];
+};
+</script>

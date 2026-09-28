@@ -1,0 +1,63 @@
+name: Build Windows release
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag to build
+        required: true
+        default: v0.1.0-alpha.4
+permissions:
+  contents: write
+concurrency:
+  group: windows-release
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.tag }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Validate version
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: node -e "if(process.env.RELEASE_TAG !== 'v'+require('./package.json').version) throw Error('Tag/version mismatch')"
+      - run: npm ci
+      - run: npm test
+      - run: npm run check:docs
+      - run: npm run audit:source
+      - run: npm audit --audit-level=high
+      - run: npm run dist:win
+      - run: node scripts/audit-package.cjs
+      - name: Verify installation, shortcuts, bundled runtime and uninstall
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-installer.ps1
+      - name: Prepare checksums and installation guide
+        shell: pwsh
+        run: |
+          $petVersion = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          $petInstaller = "dist/pet-with-you-$petVersion-x64-setup.exe"
+          $petHash = (Get-FileHash -LiteralPath $petInstaller -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$petHash  $([IO.Path]::GetFileName($petInstaller))" | Set-Content dist/SHA256SUMS.txt -Encoding ascii
+          Copy-Item docs/releases/INSTALL.txt dist/INSTALL.txt
+      - name: Create or update draft prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        shell: pwsh
+        run: |
+          $petVersion = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          $petExisting = gh release view $env:RELEASE_TAG --json isDraft 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            if (-not ($petExisting | ConvertFrom-Json).isDraft) { throw 'Refusing to replace a published release.' }
+          } else {
+            gh release create $env:RELEASE_TAG --verify-tag --draft --prerelease --title "pet-with-you $petVersion" --notes-file "docs/releases/$env:RELEASE_TAG.md"
+            if ($LASTEXITCODE -ne 0) { throw 'Draft release creation failed.' }
+          }
+          gh release upload $env:RELEASE_TAG "dist/pet-with-you-$petVersion-x64-setup.exe" dist/SHA256SUMS.txt dist/INSTALL.txt --clobber
+          if ($LASTEXITCODE -ne 0) { throw 'Asset upload failed.' }

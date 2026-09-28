@@ -22,6 +22,6 @@ child.on('close', code => {
   clearTimeout(timer);
   fs.rmSync(data, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
   if (code || timedOut) console.error(errors.split('\n').filter(line => !/configUrl=|127\.0\.0\.1|%2F/.test(line)).slice(-25).join('\n'));
-  console.log(code || timedOut ? (mode === 'demo' ? 'Demo generation failed.' : 'UI verification failed.') : (mode === 'demo' ? 'Demo output: media-output/demo-4k/' : 'UI verification passed.'));
+  console.log(code || timedOut ? (mode === 'demo' ? 'Demo generation failed.' : 'UI verification failed.') : (mode === 'demo' ? 'Demo output: media-output/'+(env.PET_DEMO_EDITION==='story'?'demo-story-4k/':'demo-4k/') : 'UI verification passed.'));
   process.exitCode = code || (timedOut ? 1 : 0);
 });

@@ -151,7 +151,7 @@ async function startServer({dataDir,defaultMode='pet',monitorSessions=false,sess
       if(route==='/shared-core.js')return file(path.join(ROOT,'runtime'),'shared-core.js');
       if(route==='/appearance.js')return file(path.join(ROOT,'ui'),'appearance.js');
       if(route.startsWith('/user-font/'))return file(appearance.dir,route.slice(11));
-      if(route==='/appearance')return json(req.method==='PUT'?appearance.save(await body()):appearance.value);
+      if(route==='/appearance')return json({...(req.method==='PUT'?appearance.save(await body()):appearance.value),bundledFontAvailable:fs.existsSync(path.join(ROOT,'assets/fonts','上首软糖体.ttf'))});
       if(route==='/preferences'){
         if(req.method==='PUT'){
           const previous={...preferences.value};const before=previous.mode;const next=preferences.save(await body());

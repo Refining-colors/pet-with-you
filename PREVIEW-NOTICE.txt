@@ -1,15 +1,16 @@
-pet-with-you - Local preview
+pet-with-you - Public preview
 
 Maintainer: Refining-colors
 Project: https://github.com/Refining-colors/pet-with-you
 Upstream: https://github.com/PC2005-cloud/dsh-pet
 
-This preview is prepared for local evaluation. Project code is licensed
+This preview is provided for personal evaluation. Project code is licensed
 under MIT (LICENSE). The upstream MIT notice is retained separately.
 
 Upstream code retains its MIT license (LICENSE.upstream). Character and
 animation assets retain the upstream noncommercial restrictions and
 attribution requirements. See ATTRIBUTION.md for details.
 
-Font redistribution review is deferred for this development iteration.
+This installer does not redistribute third-party font files. Users may
+select system fonts or import fonts they are entitled to use.
 This notice does not change the rights of any third-party assets.

@@ -1,6 +1,6 @@
 # 预览版打包、安装与更新准备
 
-当前版本为 **0.1.0-alpha.3**，是本地预览，不代表公开发行。代码许可证已选用 MIT；字体授权核实本轮暂缓，当前仍不自动上传安装包或推送源码。原作代码许可和角色素材限制仍见 [来源与致谢](../ATTRIBUTION.md)。
+当前版本为 **0.1.0-alpha.4**，提供 Windows x64 公开预览安装包。代码采用 MIT，安装包不附带第三方字体。原作代码许可和角色素材限制仍见 [来源与致谢](../ATTRIBUTION.md)。[下载页面](https://github.com/Refining-colors/pet-with-you/releases/tag/v0.1.0-alpha.4)提供 EXE、校验文件和简明安装说明。
 
 ## 给使用者
 
@@ -15,7 +15,7 @@
 
 ## 本机构建
 
-当前按维护者要求暂缓重新打包，上传仓库前再统一构建与验收。现存 alpha.3 安装包不包含之后的源码修改（包括 `pet-with-u` 快捷方式名称）。下次打包前同步版本号、锁文件、更新记录，并重新验证安装及快捷方式；不要用旧包验证新版源码的快捷方式预期。
+alpha.4 将此前源码修正统一纳入安装包，包括 `pet-with-u` 快捷方式、Codex withu 入口、置顶修复与实际跑动菜单。旧 alpha.3 安装器仅是历史本地预览，不能代替本次发布包。以后打包前仍需同步版本号、锁文件、更新记录，并重新验证安装及快捷方式。
 
 本机交付补记（2026-09-28）：维护者的日常安装目录已备份并直接同步最新程序资源，联动快捷方式已更新，未重新生成安装器。因此当前日常运行内容比同版本号的旧安装器新；重新安装旧包会退回旧功能。发布前仍按完整构建流程统一版本。
 
@@ -30,7 +30,9 @@ npm run audit:source
 npm run dist:win
 ```
 
-构建输出为 `dist/pet-with-you-0.1.0-alpha.3-x64-setup.exe`，另有 `dist/win-unpacked/` 便于检查。版本来自 `package.json` 与锁文件，后续修改必须同步。构建命令明确使用 `--publish never`，不会上传 GitHub。
+构建输出为 `dist/pet-with-you-0.1.0-alpha.4-x64-setup.exe`，另有 `dist/win-unpacked/` 便于检查。版本来自 `package.json` 与锁文件，后续修改必须同步。构建命令明确使用 `--publish never`，不会自行上传 GitHub。
+
+公开发布使用 **Build Windows release** 工作流：检出指定版本标签，运行源码检查、依赖审计、打包内容审计，并在干净 Windows runner 上真实安装/卸载两次，验证桌面快捷方式两种选择、开始菜单图标、无外部 Node.js 启动与用户数据保留。全部通过后生成带 EXE、SHA-256 和安装说明的预发布草稿；维护者核对后发布。已公开 Release 不自动覆盖。
 
 首次构建需要下载 Electron 和安装器工具，网络不可用时会失败；可以使用你信任的代理或镜像，不要关闭 TLS 校验。构建产物、缓存、QA 日志与用户数据均不提交 Git。
 
@@ -38,6 +40,7 @@ npm run dist:win
 
 ```powershell
 node scripts/verify-packaged.cjs
+node scripts/audit-package.cjs
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-installer.ps1
 ```
 

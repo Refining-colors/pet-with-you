@@ -119,10 +119,10 @@ async function loadAppearance(){
     const all=[['SimSun','宋体（默认）'],...fonts.filter(f=>f!=='SimSun').map(f=>[f,f])];
     for(const [value,label] of all){const o=document.createElement('option');o.value=value;o.textContent=label;select.append(o);}
     for(const f of appearance.customFonts||[]){const o=document.createElement('option');o.value=f.id;o.textContent='已导入：'+f.name;select.append(o);}
-    if(id==='feedbackFont'){const o=new Option('上首软糖体（原有字体）','ShangshouSoftCandy');select.prepend(o);}
+    if(id==='feedbackFont'&&appearance.bundledFontAvailable){const o=new Option('上首软糖体（原有字体）','ShangshouSoftCandy');select.prepend(o);}
     const selected=id==='feedbackFont'?appearance.feedback:appearance;
     if(selected?.family&&![...select.options].some(o=>o.value===selected.family))select.append(new Option(selected.family,selected.family));
-    select.value=selected?.family||(id==='feedbackFont'?'ShangshouSoftCandy':'SimSun');
+    select.value=selected?.family||'SimSun';
     }
     await window.PetAppearance.apply(base,appearance,[$('#quotaResult'),$('#accountResult')]);
     await previewFeedbackFont();

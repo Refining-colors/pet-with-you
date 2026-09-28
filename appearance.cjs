@@ -7,7 +7,7 @@ class Appearance {
     this.dir=path.join(dataDir,'fonts');fs.mkdirSync(this.dir,{recursive:true});
     this.store=new (require('./settings-store.cjs').SettingsStore)(dataDir);this.file=this.store.file;
     this.value=this.store.get('appearance',{family:'SimSun',source:'system',customFonts:[]});
-    this.value.feedback ||= {family:'ShangshouSoftCandy',source:'system'};
+    this.value.feedback ||= {family:'SimSun',source:'system'};
     this.value.customFonts=(this.value.customFonts||[]).filter(f=>/^[a-f0-9]{64}\.(ttf|otf)$/.test(f.id)&&fs.existsSync(path.join(this.dir,f.id)));
     for(const selection of [this.value,this.value.feedback])if(selection.source==='file'&&!this.value.customFonts.some(f=>f.id===selection.family))Object.assign(selection,{family:'SimSun',source:'system'});
     this.persist();

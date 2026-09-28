@@ -4,7 +4,7 @@
 
 一个运行在 Windows 桌面上的动画桌宠：可以随机玩耍、手动点播、聊天与碎碎念，也可以连接 Codex 桌面客户端，展示任务进度和账户额度。
 
-> `0.1.0-alpha.3` 源码预览版，现可从本仓库下载源码运行；暂未发布可下载的 EXE 安装包。由 [Refining-colors](https://github.com/Refining-colors) 维护，仓库为 [pet-with-you](https://github.com/Refining-colors/pet-with-you)。项目代码采用 MIT，角色动画与字体按各自条款说明。
+> `0.1.0-alpha.4` Windows 公开预览版：[下载安装程序](https://github.com/Refining-colors/pet-with-you/releases/tag/v0.1.0-alpha.4)。纯桌宠无需另装 Node.js、Git 或 Codex CLI。由 [Refining-colors](https://github.com/Refining-colors) 维护。项目代码采用 MIT，角色动画按原作条款说明。
 
 基于 [PC2005-cloud/dsh-pet](https://github.com/PC2005-cloud/dsh-pet) 改造与扩展，保留原作角色和 106 段动画。原作代码、素材与本项目适配工作的关系见 [来源与致谢](ATTRIBUTION.md)。
 
@@ -63,11 +63,19 @@
 - 设置分为“基础设置”和“GPT连接设置”，同一选项卡内的模块可以拖动排序。
 - 普通设置修改后，关闭设置窗口自动保存；失败时保留窗口和未保存的内容。
 - 所有普通设置集中于 `settings.json`，设置底部可定位并分享；实际密钥单独在本机加密保存。
-- 基础设置底部可选择目录创建名为 `pet-with-u`、带角色图标的启动快捷方式，同名文件自动另加编号。此名称已更新于源码，现存 alpha.3 安装包待下次统一更新。
-- 首次正常打开设置时会询问是否创建快捷方式，可选择保存目录或跳过；选择会被记住，后台联动启动不弹出此提示。此功能待下次打包。
+- 基础设置底部可选择目录创建名为 `pet-with-u`、带角色图标的启动快捷方式，同名文件自动另加编号。
+- 首次正常打开设置时会询问是否创建快捷方式，可选择保存目录或跳过；选择会被记住，后台联动启动不弹出此提示。
 - 提供错误日志、导出反馈、打开日志目录及清除日志功能。
 
 ## 快速开始
+
+### 推荐：下载安装版
+
+1. 打开 [Releases 下载页](https://github.com/Refining-colors/pet-with-you/releases/tag/v0.1.0-alpha.4)，下载 **pet-with-you-0.1.0-alpha.4-x64-setup.exe**。
+2. 双击安装，选择目录和是否创建桌面快捷方式。
+3. 从桌面或开始菜单中的 **pet-with-u** 启动，默认纯桌宠；右键打开设置。
+
+安装版自带运行环境，不需要下载源码。`Source code (zip)` 是开发者使用的源码压缩包。当前安装包未签名，可能出现未知发布者提示；下载页附 SHA-256 校验值。升级前退出桌宠，安装新版后保留原设置。详见 [完整安装手册](docs/INSTALL.md)。
 
 ### 运行环境
 
@@ -75,7 +83,7 @@
 - 安装程序自带运行环境，纯桌宠无需额外安装 Node.js。
 - 源码启动需要 Node.js 22.12 或更高版本，首次安装需要下载 Electron 依赖。
 
-本地预览安装程序会询问安装目录和是否创建桌面快捷方式，尚无公开下载。构建与验证见 [预览版打包说明](docs/PACKAGING.md)。纯桌宠可以独立运行，不需要 Codex、Git 或密钥。初次接触 GitHub 请从 [零基础配置手册](docs/INSTALL.md) 开始。
+安装程序会询问安装目录和是否创建桌面快捷方式。构建与验证见 [打包说明](docs/PACKAGING.md)。纯桌宠可以独立运行，不需要 Codex、Git 或密钥。初次接触 GitHub 请从 [零基础配置手册](docs/INSTALL.md) 开始。
 
 ### 从源码安装和启动
 

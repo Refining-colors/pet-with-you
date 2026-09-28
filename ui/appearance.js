@@ -7,7 +7,8 @@ window.PetAppearance={
         const face=new FontFace(family,'url("'+base+'/font/'+encodeURIComponent('上首软糖体.ttf')+'")');
         this.faces.set(family,face.load().then(f=>{document.fonts.add(f);return f;}).catch(e=>{this.faces.delete(family);throw e;}));
       }
-      await this.faces.get(family);
+      // Older settings can name a font that is not distributed in public builds.
+      try{await this.faces.get(family);}catch{family='SimSun';}
     }
     if(setting.source==='file'){
       const entry=setting.customFonts.find(f=>f.id===family);if(!entry)throw new Error('找不到已导入字体');

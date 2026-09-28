@@ -1,0 +1,25 @@
+pet-with-you - Windows x64 安装说明
+
+1. 下载同一 Release 下名称以 x64-setup.exe 结尾的文件。
+   Source code (zip) 是源码，不是安装程序；普通用户不需要下载源码。
+2. 双击安装程序，选择目录，以及是否创建桌面快捷方式。
+3. 从桌面或开始菜单中的 pet-with-u 启动，默认纯桌宠。
+4. 右键桌宠打开设置，选择喜欢的动作、尺寸和字体。
+5. 聊天与碎碎念：可选填写自己的 API 地址、模型和密钥。
+6. Codex 联动：可选打开 GPT 连接设置，按说明配置。
+
+安装包自带运行环境；纯桌宠不需要 Node.js、Git、Codex CLI 或 API 密钥。
+需要 Windows 10/11 x64；当前不提供 macOS、Linux、Windows ARM64 原生包。
+这是公开预览版，尚未签名；Windows 可能提示未知发布者。请核对下载来源。
+退出桌宠后安装新版，个人设置与密钥保存在用户数据目录，不放在安装包内。
+卸载默认保留个人设置，方便以后恢复；目前没有自动更新。
+
+SHA256SUMS.txt 提供安装程序的 SHA-256 校验值。
+完整手册：https://github.com/Refining-colors/pet-with-you/blob/main/docs/INSTALL.md
+问题反馈：https://github.com/Refining-colors/pet-with-you/issues
+
+维护者：Refining-colors
+本项目：https://github.com/Refining-colors/pet-with-you
+基于原作：https://github.com/PC2005-cloud/dsh-pet
+代码采用 MIT；角色动画保留原作非商业使用和署名条件。
+安装包不附带第三方字体，可选择系统字体或导入自己有权使用的字体。

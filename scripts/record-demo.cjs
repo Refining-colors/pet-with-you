@@ -27,9 +27,10 @@ module.exports = async function recordDemo({ service }) {
     pet.setIgnoreMouseEvents(true);
     const options={show:false,webPreferences:{contextIsolation:true,nodeIntegration:false,sandbox:true,backgroundThrottling:false,offscreen:true}};
     canvas=new BrowserWindow({...options,width:1280,height:720});
-    await canvas.loadFile(path.join(__dirname,'demo-canvas.html'));
+    const story=process.env.PET_DEMO_EDITION==='story';
+    await canvas.loadFile(path.join(__dirname,story?'story-canvas.html':'demo-canvas.html'));
     cardWindow=new BrowserWindow({...options,width:1800,height:1800,transparent:true});
-    const output=path.join(root,'media-output','demo-4k');fs.mkdirSync(output,{recursive:true});
+    const output=path.join(root,'media-output',story?'demo-story-4k':'demo-4k');fs.mkdirSync(output,{recursive:true});
     const quota=`s.explicitQuota=true;s.showBalanceNow({ok:true,provider:'Codex',kind:'codex',windows:[{percent:24,minutes:300,resetsAt:'2026-09-28T15:00:00Z'},{percent:48,minutes:10080,resetsAt:'2026-10-01T00:00:00Z'}],queriedAt:Date.parse('2026-09-28T10:00:00Z'),availableResetCount:2});`;
     const scenes=[
       {id:'hello',seconds:6,kicker:'01  /  桌面上的小伙伴',title:'一只小女仆，\n很多种陪伴。',lines:['纯桌宠即可开始。','聊天、额度与任务联动，按需开启。'],animation:'点击回应-元气挥手'},
@@ -45,7 +46,9 @@ module.exports = async function recordDemo({ service }) {
       {id:'quota',seconds:10,kicker:'Codex 联动  /  登录额度',title:'短期与一周，\n一起看。',lines:['5 小时用量、1 周用量与重置时间。','接口提供时显示可用重置次数。'],animation:'余额-金袋叮当',run:quota},
       {id:'end',seconds:6,kicker:'GitHub 开源项目 · pet-with-you',title:'陪你工作，\n也陪你发呆。',lines:['在 GitHub 搜索 pet-with-you。','阅读安装手册，先从纯桌宠开始。'],animation:'女仆屈膝礼仪'},
     ];
-    const selected=process.env.PET_DEMO_PREVIEW==='1'?scenes.filter(s=>['whisper','proxy','tasks','quota'].includes(s.id)):scenes;
+    const timing={hello:3,rice:4,play:4,season:4,touch:4,whisper:6,chat:5,proxy:6,tasks:7,waiting:5,quota:7,end:4};
+    const sequence=story?scenes.map(scene=>({...scene,seconds:timing[scene.id]})):scenes;
+    const selected=process.env.PET_DEMO_PREVIEW==='1'?sequence.filter(s=>['whisper','proxy','tasks','quota'].includes(s.id)):sequence;
     for(const [index,scene] of selected.entries()){
       let card=null;
       if(scene.run){
@@ -62,7 +65,8 @@ module.exports = async function recordDemo({ service }) {
       }
       const plate=await canvas.webContents.executeJavaScript(`drawPlate(${JSON.stringify(scene)},${index},${selected.length},${JSON.stringify(card)})`);
       const plateFile=path.join(output,scene.id+'-plate.png');fs.writeFileSync(plateFile,Buffer.from(plate,'base64'));
-      const filter='[1:v]scale=1920:1080:flags=lanczos[pet];[0:v][pet]overlay=1700:990:shortest=1,format=yuv420p';
+      const y=story&&!card?740:990;
+      const filter=`[1:v]scale=1920:1080:flags=lanczos[pet];[0:v][pet]overlay=1700:${y}:shortest=1,format=yuv420p`;
       const input=['-loop','1','-framerate','24','-i',plateFile,'-stream_loop','-1','-c:v','libvpx-vp9','-i',path.join(root,'assets/webm',scene.animation+'.webm')];
       await ffmpeg(command,[...input,'-filter_complex',filter,'-t',String(process.env.PET_DEMO_PREVIEW==='1'?1:scene.seconds),'-r','24','-c:v','libx264','-preset','veryfast','-crf','18','-threads','4','-movflags','+faststart',path.join(output,scene.id+'.mp4')]);
       await ffmpeg(command,['-ss',process.env.PET_DEMO_PREVIEW==='1'?'0.5':'3','-i',path.join(output,scene.id+'.mp4'),'-frames:v','1',path.join(output,scene.id+'.png')]);
