@@ -66,7 +66,7 @@ class SettingsStore {
   }
   has(section) { return Object.hasOwn(this.document().sections, section); }
   set(section, value) {
-    if (!Object.hasOwn(legacy, section) && section !== 'petEntries') throw new Error('未知设置模块');
+    if (!Object.hasOwn(legacy, section) && !['petEntries', 'onboarding'].includes(section)) throw new Error('未知设置模块');
     const doc = this.document();
     if (privateSections.has(section)) {
       const vault = this.credentials();

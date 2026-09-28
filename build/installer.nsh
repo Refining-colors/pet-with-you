@@ -39,7 +39,7 @@ FunctionEnd
 
 !macro customInstall
   ${If} $PetCreateDesktopShortcut == ${BST_CHECKED}
-    CreateShortCut "$DESKTOP\pet-with-you.lnk" "$INSTDIR\pet-with-you.exe" "" "$INSTDIR\pet-with-you.exe" 0
+    CreateShortCut "$DESKTOP\pet-with-u.lnk" "$INSTDIR\pet-with-you.exe" "" "$INSTDIR\pet-with-you.exe" 0
   ${EndIf}
 !macroend
 

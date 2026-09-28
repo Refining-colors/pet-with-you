@@ -1,0 +1,22 @@
+const test=require('node:test'),assert=require('node:assert/strict');
+const fs=require('node:fs'),path=require('node:path'),os=require('node:os');
+const {execFileSync,spawnSync}=require('node:child_process');
+test('source audit checks unlisted files and staged content even if the working copy is clean',t=>{
+  const root=fs.mkdtempSync(path.join(os.tmpdir(),'pet-source-audit-'));
+  t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
+  fs.mkdirSync(path.join(root,'scripts'));
+  fs.copyFileSync(path.join(__dirname,'../scripts/audit-source.cjs'),path.join(root,'scripts/audit-source.cjs'));
+  fs.writeFileSync(path.join(root,'export-source.cjs'),'module.exports={files:[],directories:[]};');
+  const git=args=>execFileSync('git',args,{cwd:root,stdio:'pipe'});
+  git(['init','--quiet']);
+  const run=()=>spawnSync(process.execPath,['scripts/audit-source.cjs'],{cwd:root,encoding:'utf8'});
+  assert.equal(run().status,0);
+  const fake='sk-'+ 'fixture'.repeat(6);
+  const file=path.join(root,'accidental.json');fs.writeFileSync(file,JSON.stringify({key:fake}));
+  let result=run();assert.equal(result.status,1);assert.match(result.stderr,/access-token: accidental.json/);assert.ok(!result.stderr.includes(fake));
+  git(['add','accidental.json']);fs.writeFileSync(file,'{}');
+  result=run();assert.equal(result.status,1);assert.match(result.stderr,/access-token: staged\/accidental.json/);
+  git(['add','accidental.json']);assert.equal(run().status,0);
+  fs.writeFileSync(path.join(root,'connection.json'),'{}');git(['add','connection.json']);
+  result=run();assert.equal(result.status,1);assert.match(result.stderr,/Excluded data in source: staged\/connection.json/);
+});

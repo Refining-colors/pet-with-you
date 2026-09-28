@@ -10,6 +10,16 @@ module.exports=async function verify({service,openSettings,getSettings,largeTray
     service.client.start=async()=>{throw new Error('Codex must not start during independent UI test');};
     openSettings();const settings=getSettings();settings.webContents.on('console-message',(_event,_level,message)=>{if(/Uncaught/.test(message))errors.push(message);});
     await sleep(3000);
+    const electronShell=require('electron').shell,originalOpen=electronShell.openExternal,opened=[];
+    try{
+      electronShell.openExternal=async url=>{opened.push(url);};
+      await largeTrayMenu.getItems().find(item=>item.label==='关于 pet-with-you').click();
+      assert.deepEqual(opened,[require('../project.cjs').REPOSITORY_URL]);
+    }finally{electronShell.openExternal=originalOpen;}
+    assert.equal(await settings.webContents.executeJavaScript(`document.querySelector('#petShortcutPreviewHint').hidden`),true);
+    assert.match(await settings.webContents.executeJavaScript(`document.querySelector('#clientLauncherResult').textContent`),/尚未创建/);
+    assert.equal(await settings.webContents.executeJavaScript(`document.querySelector('#followClientStart')===null`),true);
+    await require('./pet-shortcut-verify.cjs')(settings);
     assert.equal(await settings.webContents.executeJavaScript(`document.querySelector('#settingsFileSection').nextElementSibling.tagName`),'FOOTER');
     assert.equal(await settings.webContents.executeJavaScript(`document.querySelector('#locateSettingsFile').textContent.includes('定位')`),true);
     await settings.webContents.executeJavaScript(`document.querySelector('#quotaSeconds').value='17';document.querySelector('#quotaSeconds').dispatchEvent(new Event('input',{bubbles:true}));document.querySelector('#locateSettingsFile').click();`);
@@ -78,10 +88,17 @@ module.exports=async function verify({service,openSettings,getSettings,largeTray
     assert.equal((await getMode()).clientVisible,true);
     assert.equal(await settings.webContents.executeJavaScript(`currentTab==='gpt'&&!document.querySelector('#gptPanel').hidden&&document.querySelector('#basicPanel').hidden`),true);
     assert.equal(await settings.webContents.executeJavaScript(`document.querySelector('#sourceDialog').open`),true);
+    assert.equal(await settings.webContents.executeJavaScript(`document.querySelector('#clientLauncherDialog').open`),false);
     await settings.webContents.executeJavaScript(`document.querySelector('#chooseApiSource').onclick()`);await sleep(900);
     assert.equal((await request('/preferences')).chatSource,'api');
     assert.equal(await settings.webContents.executeJavaScript(`document.querySelector('#sourceDialog').open`),false);
-    const tabs=await settings.webContents.executeJavaScript(`(()=>{document.querySelector('#apiBaseUrl').value='https://draft.example/v1';selectTab('gpt');const nested=['followClientStart','chatSource','notify','queryAccount','clientPets'].every(id=>document.querySelector('#gptPanel').contains(document.getElementById(id)));selectTab('basic');return {nested,draft:document.querySelector('#apiBaseUrl').value};})()`);
+    assert.equal(await settings.webContents.executeJavaScript(`document.querySelector('#clientLauncherDialog').open`),true);
+    settings.show();settings.webContents.invalidate();await sleep(250);
+    fs.writeFileSync(path.resolve(__dirname,'../qa-output/codex-withu-prompt.png'),(await settings.webContents.capturePage().catch(error=>{throw new Error('Joint prompt capture: '+error.message);})).toPNG());
+    await settings.webContents.executeJavaScript(`document.querySelector('#skipClientLauncher').click()`);await sleep(250);
+    assert.equal((await request('/client-launcher')).prompted,true);
+    assert.equal(await settings.webContents.executeJavaScript(`document.querySelector('#clientLauncherDialog').open`),false);
+    const tabs=await settings.webContents.executeJavaScript(`(()=>{document.querySelector('#apiBaseUrl').value='https://draft.example/v1';selectTab('gpt');const nested=['createClientLauncher','followClientClose','chatSource','notify','queryAccount','clientPets'].every(id=>document.querySelector('#gptPanel').contains(document.getElementById(id)));selectTab('basic');return {nested,draft:document.querySelector('#apiBaseUrl').value};})()`);
     assert.deepEqual(tabs,{nested:true,draft:'https://draft.example/v1'});
     assert.deepEqual(await pet().webContents.executeJavaScript('sprites[0].pos'),stored);
     await settings.webContents.executeJavaScript(`document.querySelector('#petMode').checked=true;document.querySelector('#connectedMode').checked=false;changeMode()`);await sleep(1200);
@@ -96,6 +113,24 @@ module.exports=async function verify({service,openSettings,getSettings,largeTray
     assert.equal((await request('/preferences')).disableRoaming,true);
     const stationary=await pet().webContents.executeJavaScript(`(()=>{const s=sprites[0];s.stopMove();s.stopThrow();const before={...s.pos};const blocked=s.tryMove()===false;s.pendingMove={};s.startMoveDrive(s.videoA);return {blocked,pending:s.pendingMove===null,stopped:s.moveRef===null,position:JSON.stringify(before)===JSON.stringify(s.pos)};})()`);
     assert.deepEqual(stationary,{blocked:true,pending:true,stopped:true,position:true});
+    const manualRun=await pet().webContents.executeJavaScript(`(async()=>{
+      const s=sprites[0];s.stopMove();s.stopThrow();s.snapAttachment=null;window.petPreferences.snapMode='none';
+      const a=AREAS[0];s.sendBounds(a.x+a.width/2-s.halfW,a.y+a.height/2-s.halfH);const before={...s.pos};
+      const group=S.buildMenuTree(s.animations)[0].children.find(g=>g.label==='跑动（实际移动）');
+      s.onMenuAction(group.children.find(n=>n.label==='奔跑'));
+      for(let i=0;i<100&&s.pendingMove;i++)await new Promise(r=>setTimeout(r,50));
+      const manual=s.moveManual;applyPetPreferences({...window.petPreferences,disableRoaming:true});
+      const preserved=s.moveManual;const el=s.front===0?s.videoA:s.videoB;
+      // Seeking a software-decoded WebM can take longer than a fixed 200 ms under load.
+      el.currentTime=3;
+      for(let i=0;i<80&&Math.abs(s.pos.x-before.x)<=1;i++)await new Promise(r=>setTimeout(r,50));
+      const moved=Math.abs(s.pos.x-before.x)>1;
+      if(!moved)throw new Error('Manual run did not move: '+JSON.stringify({time:el.currentTime,duration:el.duration,paused:el.paused,seeking:el.seeking,ready:el.readyState,moveRef:s.moveRef,manual:s.moveManual,hidden:document.hidden}));
+      s.stopMove();s.onMenuAction({anim:'原地左转奔跑',motion:'stationary'});
+      const stationary=!s.pendingMove&&s.moveRef===null;
+      return {manual,preserved,moved,stationary};
+    })()`);
+    assert.deepEqual(manualRun,{manual:true,preserved:true,moved:true,stationary:true});
     await settings.webContents.executeJavaScript(`document.querySelector('#disableRoaming').checked=false;document.querySelector('#disableRoaming').onchange()`);
     const menu=await pet().webContents.executeJavaScript(`(()=>{const s=sprites[0];s.justDragged=false;s.onContextMenu({preventDefault(){},clientX:300,clientY:300});return document.querySelector('.dsh-pet-menu').textContent;})()`);
     assert.ok(menu.includes('窗口设置')&&menu.includes('碎碎念')&&menu.includes('对话'));

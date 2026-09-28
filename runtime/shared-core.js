@@ -704,13 +704,16 @@ function buildMenuTree(animations) {
 		["待机", animations.idle],
 		["转向", animations.turn],
 		["拖拽", animations.drag],
-		["点击回应", animations.clicks],
-		["移动", animations.moves.actions.map((m) => m.name)]
+		["点击回应", animations.clicks]
 	];
 	for (const [label, pool] of pools) if (pool.length) groups.push({
 		label,
 		children: pool.map(leaf)
 	});
+	if (animations.moves.actions.length) {
+		groups.push({label:"移动（原地播放）",children:animations.moves.actions.map(m=>({...leaf(m.name),motion:"stationary"}))});
+		groups.push({label:"跑动（实际移动）",children:animations.moves.actions.map(m=>({label:m.name==='原地左转奔跑'?'奔跑':m.name==='原地漂浮踏步'?'漂浮前进':m.name,anim:m.name,motion:"travel"}))});
+	}
 	const cats = (animations.categories ?? []).filter((c) => c.actions.length > 0);
 	for (const c of cats) groups.push({
 		label: c.id,

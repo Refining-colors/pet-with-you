@@ -16,7 +16,7 @@ const ROOT=__dirname;
 const MIME={'.webm':'video/webm','.mov':'video/quicktime','.png':'image/png','.ttf':'font/ttf','.otf':'font/otf','.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8'};
 const readJson=(p,fallback)=>{try{return JSON.parse(fs.readFileSync(p,'utf8'));}catch{return fallback;}};
 const writeJson=(p,v)=>{fs.writeFileSync(p+'.tmp',JSON.stringify(v,null,2));fs.renameSync(p+'.tmp',p);};
-async function startServer({dataDir,defaultMode='pet',monitorSessions=false,sessionRoot,onSettingsLocate=()=>{},onClientLauncher=async()=>({canceled:true}),onOpenThread=async()=>{throw new Error('无法打开对话');},onChange=()=>{},onPreferences=()=>{},onNotify=()=>{},onReview=()=>{},onChooseRuntime=async()=>({canceled:true}),onTray=()=>{},onFontImport=async()=>null,onLogsOpen=async()=>{throw new Error('目录打开功能不可用');},onLogsExport=async()=>{throw new Error('日志导出功能不可用');},protect,unprotect}){
+async function startServer({dataDir,defaultMode='pet',monitorSessions=false,sessionRoot,onRuntimeInfo=()=>({development:false}),onClientLauncherStatus=()=>({configured:false}),onSettingsLocate=()=>{},onPetShortcut=async()=>({canceled:true}),onClientLauncher=async()=>({canceled:true}),onOpenThread=async()=>{throw new Error('无法打开对话');},onChange=()=>{},onPreferences=()=>{},onNotify=()=>{},onReview=()=>{},onChooseRuntime=async()=>({canceled:true}),onTray=()=>{},onFontImport=async()=>null,onLogsOpen=async()=>{throw new Error('目录打开功能不可用');},onLogsExport=async()=>{throw new Error('日志导出功能不可用');},protect,unprotect}){
   fs.mkdirSync(dataDir,{recursive:true});fs.mkdirSync(path.join(dataDir,'pet'),{recursive:true});
   const settingsStore=new (require('./settings-store.cjs').SettingsStore)(dataDir);
   const paths={defaultFile:path.join(ROOT,'assets/config.jsonc'),userFile:settingsStore.file,petDir:path.join(dataDir,'pet'),settings:settingsStore};
@@ -132,7 +132,19 @@ async function startServer({dataDir,defaultMode='pet',monitorSessions=false,sess
       if(route==='/'||route==='/settings')return file(path.join(ROOT,'ui'),'index.html');
       if(route==='/settings-file'&&req.method==='GET')return json({name:'settings.json',file:settingsStore.file});
       if(route==='/settings-file/locate'&&req.method==='POST'){await onSettingsLocate(settingsStore.file);return json({ok:true});}
-      if(route==='/client-launcher'&&req.method==='POST')return json(await onClientLauncher());
+      if(route==='/runtime-info'&&req.method==='GET')return json(onRuntimeInfo());
+      if(route==='/client-launcher'&&req.method==='GET')return json({...onClientLauncherStatus(),prompted:settingsStore.get('onboarding',{}).clientLauncherPrompted===true});
+      if(route==='/pet-shortcut'&&req.method==='POST')return json(await onPetShortcut());
+      if(route==='/client-launcher'&&req.method==='POST'){
+        const result=await onClientLauncher();
+        if(result.ok||result.canceled)settingsStore.set('onboarding',{...settingsStore.get('onboarding',{}),clientLauncherPrompted:true});
+        return json(result);
+      }
+      if(route==='/client-launcher/dismiss'&&req.method==='POST'){
+        settingsStore.set('onboarding',{...settingsStore.get('onboarding',{}),clientLauncherPrompted:true});
+        return json({ok:true});
+      }
+      if(route==='/codex-withu.png'&&req.method==='GET')return file(path.join(ROOT,'build'),'codex-withu.png');
       if(route==='/settings-file.js')return file(path.join(ROOT,'ui'),'settings-file.js');
       if(route==='/ui.js')return file(path.join(ROOT,'ui'),'ui.js');
       if(route==='/autosave.js')return file(path.join(ROOT,'ui'),'autosave.js');

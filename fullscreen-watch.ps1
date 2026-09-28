@@ -29,7 +29,7 @@ public class PetForeground {
     var m=new Monitor();m.size=Marshal.SizeOf(typeof(Monitor));if(!GetMonitorInfo(MonitorFromWindow(h,2),ref m))return "{}";
     uint pid;GetWindowThreadProcessId(h,out pid);
     bool full=r.left<=m.bounds.left+2&&r.top<=m.bounds.top+2&&r.right>=m.bounds.right-2&&r.bottom>=m.bounds.bottom-2;
-    return "{\"pid\":"+pid+",\"fullscreen\":"+(full?"true":"false")+",\"window\":{\"x\":"+r.left+",\"y\":"+r.top+",\"width\":"+(r.right-r.left)+",\"height\":"+(r.bottom-r.top)+"},\"monitor\":{\"x\":"+m.bounds.left+",\"y\":"+m.bounds.top+",\"width\":"+(m.bounds.right-m.bounds.left)+",\"height\":"+(m.bounds.bottom-m.bounds.top)+"}}";
+    return "{\"foregroundId\":\""+h.ToInt64()+"\",\"pid\":"+pid+",\"fullscreen\":"+(full?"true":"false")+",\"window\":{\"x\":"+r.left+",\"y\":"+r.top+",\"width\":"+(r.right-r.left)+",\"height\":"+(r.bottom-r.top)+"},\"monitor\":{\"x\":"+m.bounds.left+",\"y\":"+m.bounds.top+",\"width\":"+(m.bounds.right-m.bounds.left)+",\"height\":"+(m.bounds.bottom-m.bounds.top)+"}}";
   }
 }
 '@

@@ -4,7 +4,7 @@ const {execFileSync}=require('node:child_process');
 const psString=s=>"'"+String(s).replaceAll("'","''")+"'";
 function syncStartup({dataDir,preferences,executable,root,packaged=false,shortcutDir}){
   if(process.platform!=='win32'){
-    if(preferences.autostart||preferences.followClientStart)throw new Error('启动联动目前仅支持 Windows');
+    if(preferences.autostart)throw new Error('开机启动目前仅支持 Windows');
     return;
   }
   const enabled=preferences.autostart;

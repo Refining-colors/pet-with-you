@@ -86,7 +86,7 @@ test('client lifecycle ignores pure mode, disabled switches and detection errors
 test('Startup shortcut uses current paths with spaces and is removable without admin', {skip:process.platform!=='win32'},t=>{
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),"pet startup ' paths-"));t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));
   const {syncStartup,psString}=require('../autostart.cjs');
-  const opts={dataDir:dir,shortcutDir:dir,root:path.resolve(__dirname,'..'),executable:process.execPath,preferences:{mode:'pet',autostart:true,followClientStart:false}};
+  const opts={dataDir:dir,shortcutDir:dir,root:path.resolve(__dirname,'..'),executable:process.execPath,preferences:{mode:'pet',autostart:true}};
   syncStartup(opts);const shortcut=path.join(dir,'DSH Pet Companion.lnk');assert.ok(fs.existsSync(shortcut));
   const read=`$s=(New-Object -ComObject WScript.Shell).CreateShortcut(${psString(shortcut)});$s.Arguments`;
   const args=require('node:child_process').execFileSync('powershell.exe',['-NoProfile','-Command',read],{encoding:'utf8',windowsHide:true});

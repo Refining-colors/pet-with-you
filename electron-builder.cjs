@@ -10,7 +10,7 @@ module.exports = {
   asar: false,
   files: [
     ...files.filter(name => name.endsWith('.md') || (name.endsWith('.cjs') && !['export-source.cjs', 'electron-builder.cjs', 'launch.cjs'].includes(name)) || ['package.json','tray.png','LICENSE.upstream','PREVIEW-NOTICE.txt','hook.cmd','Review-Hooks.cmd','Uninstall-Integration.cmd','startup-watch.ps1','fullscreen-watch.ps1','cleanup-startup.ps1','config.mjs'].includes(name)),
-    'LICENSE', 'launch-detached.ps1', 'assets/**/*', 'runtime/**/*', 'ui/**/*', 'docs/**/*', 'scripts/dev-env.cjs', 'build/icon.ico',
+    'LICENSE', 'launch-detached.ps1', 'assets/**/*', 'runtime/**/*', 'ui/**/*', 'docs/**/*', 'scripts/dev-env.cjs', 'build/icon.ico', 'build/codex-withu.ico', 'build/codex-withu.png',
     '!**/node_modules/**/*', '!**/.local/**/*', '!**/*.log',
   ],
   win: { target: [{ target: 'nsis', arch: ['x64'] }], icon: 'build/icon.ico', signAndEditExecutable: true },
@@ -18,7 +18,7 @@ module.exports = {
     oneClick: false, perMachine: false, allowElevation: false,
     allowToChangeInstallationDirectory: true,
     createDesktopShortcut: false, createStartMenuShortcut: true,
-    shortcutName: 'pet-with-you', runAfterFinish: false,
+    shortcutName: 'pet-with-u', runAfterFinish: false,
     installerIcon: 'build/icon.ico', uninstallerIcon: 'build/icon.ico',
     include: 'build/installer.nsh', deleteAppDataOnUninstall: false,
     installerLanguages: ['zh_CN', 'en_US'],

@@ -139,7 +139,7 @@ for(const [a,b] of [['interval','apiWhisperInterval'],['autoWhisperProbability',
 $('#saveApiAutoWhisper').onclick=async()=>{const button=$('#saveApiAutoWhisper');button.disabled=true;try{$('#interval').value=$('#apiWhisperInterval').value;$('#autoWhisperProbability').value=$('#apiWhisperProbability').value;await $('#saveAutoWhisper').onclick();$('#apiAutoWhisperResult').textContent=$('#autoWhisperResult').textContent;}finally{button.disabled=false;}};
 $('#restoreTray').onclick=()=>api('/tray/show','POST').catch(e=>$('#appearanceResult').textContent=e.message);
 settingsLoads.push(loadAppearance());
-async function loadPreferences(){try{const p=await api('/preferences');if(window.PetSettingsAutosave?.dirty)return;$('#quotaAfterTurn').checked=p.quotaAfterTurn;$('#quotaMode').value=p.quotaMode;$('#quotaSeconds').value=p.quotaSeconds;$('#whisperStreaming').checked=p.whisperStreaming;$('#autoWhisperProbability').value=$('#apiWhisperProbability').value=p.autoWhisperProbability;applyMode(p.mode);for(const key of ['disableEventResponse','ignoreAccountTimeouts','taskBasicFeedback','taskNativeFeedback'])$('#'+key).checked=p[key];$('#disableRoaming').checked=p.disableRoaming;showSourceChoice(p);loadModuleOrder(p.moduleOrder);document.querySelector('input[name=replyMode][value='+p.replyMode+']').checked=true;$('#replySeconds').value=p.replySeconds;$('#alwaysOnTop').checked=p.alwaysOnTop;$('#fullscreenMode').value=p.fullscreenMode;$('#clickAction').value=p.clickAction;$('#actionSpeed').value=p.actionSpeed;for(const k of ['autostart','followClientStart','followClientClose'])$('#'+k).checked=p[k];$('#snapMode').value=p.snapMode;}catch(e){$('#preferencesResult').textContent=e.message;}}
+async function loadPreferences(){try{const p=await api('/preferences');if(window.PetSettingsAutosave?.dirty)return;$('#quotaAfterTurn').checked=p.quotaAfterTurn;$('#quotaMode').value=p.quotaMode;$('#quotaSeconds').value=p.quotaSeconds;$('#whisperStreaming').checked=p.whisperStreaming;$('#autoWhisperProbability').value=$('#apiWhisperProbability').value=p.autoWhisperProbability;applyMode(p.mode);for(const key of ['disableEventResponse','ignoreAccountTimeouts','taskBasicFeedback','taskNativeFeedback'])$('#'+key).checked=p[key];$('#disableRoaming').checked=p.disableRoaming;showSourceChoice(p);loadModuleOrder(p.moduleOrder);document.querySelector('input[name=replyMode][value='+p.replyMode+']').checked=true;$('#replySeconds').value=p.replySeconds;$('#alwaysOnTop').checked=p.alwaysOnTop;$('#fullscreenMode').value=p.fullscreenMode;$('#clickAction').value=p.clickAction;$('#actionSpeed').value=p.actionSpeed;for(const k of ['autostart','followClientClose'])$('#'+k).checked=p[k];$('#snapMode').value=p.snapMode;}catch(e){$('#preferencesResult').textContent=e.message;}}
 $('#savePreferences').onclick=async()=>{try{await api('/preferences','PUT',{alwaysOnTop:$('#alwaysOnTop').checked,fullscreenMode:$('#fullscreenMode').value,clickAction:$('#clickAction').value,actionSpeed:Number($('#actionSpeed').value)});$('#preferencesResult').textContent='已保存，几秒内生效。';}catch(e){$('#preferencesResult').textContent=e.message;}};
 async function changeMode(){
   $('#petMode').disabled=$('#connectedMode').disabled=true;
@@ -149,7 +149,7 @@ async function changeMode(){
 }
 $('#petMode').onchange=$('#connectedMode').onchange=changeMode;
 $('#saveLifecycle').onclick=async()=>{try{await api('/preferences','PUT',{autostart:$('#autostart').checked,snapMode:$('#snapMode').value});$('#lifecycleResult').textContent='已保存。';}catch(e){$('#lifecycleResult').textContent=e.message;}};
-for(const key of ['autostart','followClientStart','followClientClose'])$('#'+key).onchange=async()=>{
+for(const key of ['autostart','followClientClose'])$('#'+key).onchange=async()=>{
   const output=$('#'+(key==='autostart'?'lifecycleResult':'clientLifecycleResult'));
   try{await api('/preferences','PUT',{[key]:$('#'+key).checked});window.PetSettingsAutosave?.clear('pref:'+key);output.textContent='启动与退出开关已立即保存。';}
   catch(e){output.textContent=e.message;}
@@ -161,6 +161,7 @@ function showSourceChoice(p){
   $('#chatSource').value=p.chatSource;
   if(p.mode==='connected'&&!p.chatSourceChosen&&!sourceChoiceDeferred&&!$('#sourceDialog').open)$('#sourceDialog').showModal();
   if((p.mode!=='connected'||p.chatSourceChosen)&&$('#sourceDialog').open)$('#sourceDialog').close();
+  window.dispatchEvent(new CustomEvent('pet:connection-mode',{detail:p.mode}));
 }
 async function selectChatSource(source){
   try{const p=await api('/preferences','PUT',{chatSource:source,chatSourceChosen:true});showSourceChoice(p);$('#chatSourceResult').textContent='已保存，聊天和碎碎念将使用'+(source==='api'?'自有 API。':'GPT 当前账户 / config 配置。');if(source==='api'){selectTab('basic');$('#apiSection').scrollIntoView({behavior:'smooth'});}}
@@ -189,7 +190,7 @@ $('#openApiSettings').onclick=()=>{selectTab('basic');$('#apiSection').scrollInt
 $('#openProxySettings').onclick=()=>{selectTab('basic');$('#proxyDetails').open=true;$('#proxyDetails').scrollIntoView({behavior:'smooth'});};
 $('#clientCredential').onchange=()=>{$('#credential').value=$('#clientCredential').value;updateCredentialFields();};
 $('#credential').onchange=()=>{$('#clientCredential').value=$('#credential').value;updateCredentialFields();};
-$('#saveClientLifecycle').onclick=async()=>{try{await api('/preferences','PUT',{followClientStart:$('#followClientStart').checked,followClientClose:$('#followClientClose').checked});$('#clientLifecycleResult').textContent='已保存。';}catch(e){$('#clientLifecycleResult').textContent=e.message;}};
+$('#saveClientLifecycle').onclick=async()=>{try{await api('/preferences','PUT',{followClientClose:$('#followClientClose').checked});$('#clientLifecycleResult').textContent='已保存。';}catch(e){$('#clientLifecycleResult').textContent=e.message;}};
 $('#saveClientPets').onclick=async()=>{main.notificationsEnabled=$('#notify').checked;await save(main);$('#clientPetsResult').textContent=$('#result').textContent;};
 function fillProxyProfiles(items){savedProxyProfiles=items;const select=$('#proxyProfiles'),previous=select.value;select.replaceChildren();for(const p of items){const option=text('option',p.name);option.value=p.id;select.append(option);}if(items.some(p=>p.id===previous))select.value=previous;$('#loadProxyProfile').disabled=$('#deleteProxyProfile').disabled=!items.length;showProfileSummary('proxy');}
 $('#saveProxyProfile').onclick=async()=>{try{const name=$('#proxyProfileName').value.trim();if(!name)throw new Error('请填写查询配置名称');await saveCurrentQuota();fillProxyProfiles(await api('/quota/profiles','POST',{name}));$('#quotaResult').textContent='查询配置已保存到列表：'+name;}catch(e){$('#quotaResult').textContent=e.message;}};

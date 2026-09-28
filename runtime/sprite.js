@@ -550,8 +550,8 @@ class PetSprite {
 
   // ---- 漫游（rAF 驱动，动画首尾各 leadSec/tailSec 秒原地不动；几何在 shared/planMove） ----
   // preferredName 传入时固定使用该动画（右键菜单点播移动动画），否则与随机链一致随机选
-  tryMove(preferredName) {
-    if(window.petPreferences?.disableRoaming)return false;
+  tryMove(preferredName, manual = false) {
+    if(window.petPreferences?.disableRoaming&&!manual)return false;
     if (this.moveRef !== null || this.pendingMove || this.throwRef !== null) return true;
     const moves = this.animations.moves;
     const actions = moves.actions;
@@ -561,11 +561,11 @@ class PetSprite {
       : actions[Math.floor(Math.random() * actions.length)];
     if (!chosen) return false;
     const mp = Object.assign({}, moves.default, chosen.params || {});
-    const dir = (this.facing === 'right') !== this.animations.turn.includes(this.anim) ? 1 : -1;
+    let dir = (this.facing === 'right') !== this.animations.turn.includes(this.anim) ? 1 : -1;
     const W = VIEW.w;
     const H = VIEW.h;
     const distScale = this.size / S.PET_REF_WIDTH;
-    const plan = S.planMove({
+    const geometry = {
       cx: this.currentCenterX(),
       cy: this.currentCenterY(),
       W,
@@ -578,9 +578,13 @@ class PetSprite {
       sideAllow: this.sideAllow,
       // 落点按显示器并集判定：能骑缝跨屏走，但走不进外接矩形里的空洞
       areas: AREAS,
-    });
+    };
+    let plan = S.planMove(geometry);
+    if(!plan&&manual){dir=-dir;plan=S.planMove({...geometry,dir});}
     if (!plan) return false;
-    this.pendingMove = { ...plan, dir, leadSec: mp.leadSec, tailSec: mp.tailSec };
+    this.facing=dir===1?'right':'left';
+    this.moveManual=manual;
+    this.pendingMove = { ...plan, dir, manual, leadSec: mp.leadSec, tailSec: mp.tailSec };
     this.anim = chosen.name;
     this.once = true;
     this.switchTo(chosen.name, true);
@@ -588,7 +592,7 @@ class PetSprite {
   }
 
   startMoveDrive(el) {
-    if(window.petPreferences?.disableRoaming){this.stopMove();return;}
+    if(window.petPreferences?.disableRoaming&&!this.pendingMove?.manual){this.stopMove();return;}
     const pm = this.pendingMove;
     if (!pm || this.moveRef !== null) return;
     this.pendingMove = null;
@@ -599,7 +603,7 @@ class PetSprite {
     const W = VIEW.w;
     const H = VIEW.h;
     const step = () => {
-      if(window.petPreferences?.disableRoaming){this.stopMove();return;}
+      if(window.petPreferences?.disableRoaming&&!pm.manual){this.stopMove();return;}
       if (this.moveToken !== token) return;
       const t = el.currentTime || 0;
       let ratioX;
@@ -612,6 +616,7 @@ class PetSprite {
         this.moveRef = requestAnimationFrame(step);
       } else {
         this.moveRef = null;
+        this.moveManual = false;
         this.customPos = { rx: targetRatio, ry: startYRatio };
       }
     };
@@ -619,6 +624,7 @@ class PetSprite {
   }
 
   stopMove() {
+    this.moveManual = false;
     this.pendingMove = null;
     this.moveToken++;
     if (this.moveRef !== null) {
@@ -1158,10 +1164,9 @@ class PetSprite {
     if (S.isNoMirrorAnimation(this.animations.categories, leaf.anim) && this.facing === 'right') {
       this.facing = 'left';
     }
-    // 点播移动动画：走真实移动（与随机游走同一套：边界检查 / 随机距离 / leadSec·tailSec / dir），
-    // 仅"选哪个动画"由菜单决定；挪不动（false）退化纯播放
-    if (this.animations.moves.actions.some((a) => a.name === leaf.anim)) {
-      if (this.tryMove(leaf.anim) === false) this.playOnce(leaf.anim);
+    // 手动跑动复用漫游几何，但不受自主跑动开关限制；原地播放不启动位移。
+    if (leaf.motion !== 'stationary' && this.animations.moves.actions.some((a) => a.name === leaf.anim)) {
+      if (this.tryMove(leaf.anim, true) === false) this.playOnce(leaf.anim);
       return;
     }
     this.playOnce(leaf.anim);

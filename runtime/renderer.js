@@ -151,7 +151,7 @@ function applyPetPreferences(value,fromIPC=false){
       // Resume current activity without replaying a completion observed during recording.
       if(!value.disableEventResponse&&['success','error'].includes(s.latestWorkSnapshot?.state)&&!s.latestWorkSnapshot?.activeCount)s.latestWorkSnapshot={...s.latestWorkSnapshot,state:null,task:null,items:[]};
     }
-    if(value.disableRoaming)s.stopMove();if(changed)s.applyTaskFeedback();if(fromIPC)s.closeMenu();s.renderBubble();
+    if(value.disableRoaming&&!s.moveManual)s.stopMove();if(changed)s.applyTaskFeedback();if(fromIPC)s.closeMenu();s.renderBubble();
   }
 }
 window.petBridge?.onPreferences?.(value=>applyPetPreferences(value,true));

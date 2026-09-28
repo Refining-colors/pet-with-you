@@ -5,7 +5,11 @@ if (-not $DestinationDirectory) { $DestinationDirectory = [Environment]::GetFold
 if (-not (Test-Path -LiteralPath $DestinationDirectory -PathType Container)) { throw 'Shortcut destination does not exist.' }
 $petNode = (Get-Command node.exe -ErrorAction Stop).Source
 $petShell = New-Object -ComObject WScript.Shell
-$petLink = $petShell.CreateShortcut((Join-Path $DestinationDirectory 'pet-with-you.lnk'))
+$petFile = Join-Path $DestinationDirectory 'pet-with-u.lnk'
+for ($petIndex = 2; Test-Path -LiteralPath $petFile; $petIndex++) {
+  $petFile = Join-Path $DestinationDirectory ("pet-with-u ($petIndex).lnk")
+}
+$petLink = $petShell.CreateShortcut($petFile)
 $petLink.TargetPath = Join-Path $env:WINDIR 'System32\wscript.exe'
 $petLink.Arguments = '"' + (Join-Path $petRoot 'launcher.vbs') + '" normal "' + $petNode + '"'
 $petLink.WorkingDirectory = $petRoot

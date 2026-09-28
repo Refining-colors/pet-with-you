@@ -13,6 +13,11 @@ function walk(directory) {
   }
 }
 for (const directory of directories) walk(directory);
+const inGit=fs.existsSync(path.join(root,'.git'));
+if(inGit){
+  const current=execFileSync('git',['ls-files','--cached','--others','--exclude-standard','-z'],{cwd:root,encoding:'utf8'});
+  for(const name of current.split('\0').filter(Boolean))if(fs.existsSync(path.join(root,name)))candidates.add(name);
+}
 const forbidden = /(^|\/)(?:\.local|\.npm-cache|node_modules|qa-output|media-output|dist|release|legacy-settings)(?:\/|$)|(?:^|\/)(?:settings\.json|credentials\.local\.json|client-launcher\.local\.json|auth\.json|config\.toml|connection\.json|memory\.json|preferences\.json|api-settings\.json(?:\.profiles.*)?|quota\.json(?:\.profiles.*)?|\.env(?:\..*)?)$/i;
 const patterns = [
   ['private-key', /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/],
@@ -29,21 +34,31 @@ function inspect(name, bytes) {
   for (const [label, expression] of patterns) if (expression.test(text)) { console.error(label + ': ' + name); failures++; }
   if (personalPath.test(text)) { console.error('personal-path: ' + name); failures++; }
 }
-for (const name of candidates) inspect(name, fs.readFileSync(path.join(root, name)));
-let historyBlobs = 0;
-if (fs.existsSync(path.join(root, '.git'))) {
+for (const name of candidates) {
+  if(fs.lstatSync(path.join(root,name)).isSymbolicLink())throw new Error('Source contains a symlink: '+name);
+  inspect(name, fs.readFileSync(path.join(root, name)));
+}
+let historyBlobs = 0, stagedBlobs = 0;
+if (inGit) {
   const listed = execFileSync('git', ['rev-list', '--objects', '--all'], { cwd: root, encoding: 'utf8' });
   const objects = listed.trim().split('\n').filter(line => line.includes(' ')).map(line => ({ oid: line.slice(0, 40), name: line.slice(41) }));
   const types = execFileSync('git', ['cat-file', '--batch-check=%(objecttype)'], { cwd: root, input: objects.map(o => o.oid).join('\n') + '\n', encoding: 'utf8' }).trim().split('\n');
   const blobs = objects.filter((_, index) => types[index] === 'blob');
-  const data = execFileSync('git', ['cat-file', '--batch'], { cwd: root, input: blobs.map(o => o.oid).join('\n') + '\n', maxBuffer: 256 * 1024 * 1024 });
+  const staged=execFileSync('git',['ls-files','--stage','-z'],{cwd:root,encoding:'utf8'}).split('\0').filter(Boolean).map(line=>{
+    const tab=line.indexOf('\t'),[mode,oid,stage]=line.slice(0,tab).split(' '),name=line.slice(tab+1);
+    if(stage!=='0'||mode==='120000'||mode==='160000')throw new Error('Unsupported staged entry: '+name);
+    return {oid,name,staged:true};
+  });
+  const scan=[...blobs,...staged];
+  const data = execFileSync('git', ['cat-file', '--batch'], { cwd: root, input: scan.map(o => o.oid).join('\n') + '\n', maxBuffer: 512 * 1024 * 1024 });
   let offset = 0;
-  for (const blob of blobs) {
+  for (const blob of scan) {
     const newline = data.indexOf(10, offset), size = Number(data.subarray(offset, newline).toString().split(' ')[2]);
     offset = newline + 1;
-    inspect('history/' + blob.name, data.subarray(offset, offset + size));
-    offset += size + 1; historyBlobs++;
+    inspect((blob.staged?'staged/':'history/') + blob.name, data.subarray(offset, offset + size));
+    offset += size + 1;
+    if(blob.staged)stagedBlobs++;else historyBlobs++;
   }
 }
-console.log(JSON.stringify({ sourceFiles: candidates.size, historyBlobs, failures, scope: 'Patterns and file selection; screenshots and resource licenses require separate review.' }));
+console.log(JSON.stringify({ sourceFiles: candidates.size, historyBlobs, stagedBlobs, failures, scope: 'Working tree, Git index and history patterns; screenshots and resource licenses require separate review.' }));
 process.exitCode = failures ? 1 : 0;

@@ -17,7 +17,7 @@ test('development preview isolates data and Codex even under inherited host or t
 
 test('development preview rejects lifecycle integration before touching Startup', () => {
   assert.doesNotThrow(() => assertDevelopmentPreferences({ mode: 'pet' }));
-  for (const key of ['autostart', 'followClientStart', 'followClientClose']) {
+  for (const key of ['autostart', 'followClientClose']) {
     assert.throws(() => assertDevelopmentPreferences({ [key]: true }), /开发预览/);
   }
 });

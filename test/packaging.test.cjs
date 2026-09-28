@@ -22,12 +22,16 @@ test('desktop shortcut resolves its moved source folder and preserves the tray i
   for (const file of ['scripts/create-shortcut.ps1', 'launcher.vbs', 'build/icon.ico']) fs.copyFileSync(path.join(root, file), path.join(folder, file));
   execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', path.join(folder, 'scripts/create-shortcut.ps1'), '-DestinationDirectory', folder], { windowsHide: true });
   const literal = value => "'" + value.replaceAll("'", "''") + "'";
-  const command = "$s=(New-Object -ComObject WScript.Shell).CreateShortcut(" + literal(path.join(folder, 'pet-with-you.lnk')) + "); [Console]::OutputEncoding=[System.Text.Encoding]::UTF8; @{target=$s.TargetPath;arguments=$s.Arguments;working=$s.WorkingDirectory;icon=$s.IconLocation}|ConvertTo-Json -Compress";
+  const command = "$s=(New-Object -ComObject WScript.Shell).CreateShortcut(" + literal(path.join(folder, 'pet-with-u.lnk')) + "); [Console]::OutputEncoding=[System.Text.Encoding]::UTF8; @{target=$s.TargetPath;arguments=$s.Arguments;working=$s.WorkingDirectory;icon=$s.IconLocation}|ConvertTo-Json -Compress";
   const link = JSON.parse(execFileSync('powershell.exe', ['-NoProfile', '-Command', command], { encoding: 'utf8', windowsHide: true }).replace(/^\uFEFF/, ''));
   assert.match(link.target, /wscript\.exe$/i);
   assert.ok(link.arguments.includes(path.join(folder, 'launcher.vbs')));
   assert.equal(link.working, folder);
   assert.ok(link.icon.startsWith(path.join(folder, 'build/icon.ico')));
+  const original=fs.readFileSync(path.join(folder,'pet-with-u.lnk'));
+  execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', path.join(folder, 'scripts/create-shortcut.ps1'), '-DestinationDirectory', folder], { windowsHide: true });
+  assert.deepEqual(fs.readFileSync(path.join(folder,'pet-with-u.lnk')),original,'reinstall must preserve an existing shortcut');
+  assert.ok(fs.existsSync(path.join(folder,'pet-with-u (2).lnk')));
 });
 
 test('packaged hooks use the bundled command helper, while source hooks use the selected Node', () => {
@@ -40,8 +44,8 @@ test('packaged hooks use the bundled command helper, while source hooks use the 
   assert.match(source.marker, /hook\.cjs$/);
 });
 
-test('ICO includes common Windows sizes with transparent PNG frames', () => {
-  const bytes = fs.readFileSync(path.join(root, 'build/icon.ico'));
+for(const name of ['icon.ico','codex-withu.ico'])test(name+' includes common Windows sizes with PNG frames', () => {
+  const bytes = fs.readFileSync(path.join(root, 'build',name));
   assert.equal(bytes.readUInt16LE(2), 1);
   const count = bytes.readUInt16LE(4), sizes = [];
   for (let i = 0; i < count; i++) {

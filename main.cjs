@@ -5,7 +5,7 @@ const nodeArgument=process.argv.find(value=>value.startsWith('--pet-node-exe='))
 if(!app.isPackaged&&nodeArgument)process.env.PET_NODE_EXE=nodeArgument.slice('--pet-node-exe='.length);
 const { startServer } = require('./server.cjs');
 const {WindowPolicy}=require('./window-policy.cjs');
-const developmentPreview=process.env.PET_DEV_MODE==='1';
+const developmentPreview=!app.isPackaged&&process.env.PET_DEV_MODE==='1';
 if(developmentPreview){
   const environment=require('./scripts/dev-env.cjs').developmentEnvironment(__dirname);
   for(const key of Object.keys(process.env))if(!(key in environment))delete process.env[key];
@@ -17,17 +17,18 @@ if ((process.env.PET_INTEGRATION_VERIFY==='1'||process.env.PET_DEMO_RECORD==='1'
 
 process.env.DSH_PET_STANDALONE='1';
 delete process.env.DSH_PET_HOST_PID;
-const { PRODUCT_NAME, MAINTAINER, REPOSITORY_URL, MAINTAINER_URL, UPSTREAM_URL, dataDirectory } = require('./project.cjs');
+const { PRODUCT_NAME, REPOSITORY_URL, MAINTAINER_URL, UPSTREAM_URL, dataDirectory } = require('./project.cjs');
 app.setName(PRODUCT_NAME);
 const appId='im.refiningcolors.petwithyou'+(developmentPreview?'.dev':'');
 if(process.platform==='win32')app.setAppUserModelId(appId);
 const dataDir=dataDirectory(app.getPath('appData'));
+if(!developmentPreview&&!process.env.PET_TEST_DATA_DIR)require('./legacy-package-data.cjs').importLegacyPackageData(dataDir);
 app.setPath('userData',dataDir);
 app.disableHardwareAcceleration();
 if(!app.requestSingleInstanceLock()){app.quit();}else{
   const settingsStore=new (require('./settings-store.cjs').SettingsStore)(dataDir);
   let service,tray,settings,policy,runtimeStarted=false,trayVisible=true;
-  let startupSignature='',quitApproved=false,quitSaving=false,lastClientRunning=null;
+  let startupSignature='',quitApproved=false,quitSaving=false,lastClientRunning=null,shortcutPromptPending=false;
   async function flushSettings(){
     if(!settings||settings.isDestroyed())return true;
     if(settings.webContents.isLoadingMainFrame())await new Promise(resolve=>settings.webContents.once('did-stop-loading',resolve));
@@ -39,19 +40,12 @@ if(!app.requestSingleInstanceLock()){app.quit();}else{
   function syncLifecycle(next){
     if(developmentPreview){require('./scripts/dev-env.cjs').assertDevelopmentPreferences(next);return;}
     if(process.env.PET_TEST_DATA_DIR)return;
-    const signature=JSON.stringify([next.autostart,next.mode,next.followClientStart]);
+    const signature=JSON.stringify([next.autostart,next.mode]);
     if(signature!==startupSignature){
       require('./autostart.cjs').syncStartup({dataDir,preferences:next,executable:process.execPath,root:__dirname,packaged:app.isPackaged});
       startupSignature=signature;
     }
     if(next.mode!=='connected'||!next.followClientClose)lifecycle.reset();
-  }
-  async function showAbout(){
-    const result=await dialog.showMessageBox({type:'info',title:PRODUCT_NAME,message:PRODUCT_NAME,
-      detail:`维护者：${MAINTAINER}\n${REPOSITORY_URL}\n\n独立桌面陪伴与 Codex 任务联动。\n来源与致谢：基于 PC2005-cloud/dsh-pet 改造，原角色与动画来自上游；素材非商用。\n${UPSTREAM_URL}`,
-      buttons:['项目主页','来源与致谢','关闭'],defaultId:2,cancelId:2});
-    if(result.response===0)await shell.openExternal(REPOSITORY_URL);
-    if(result.response===1)await shell.openExternal(UPSTREAM_URL);
   }
   function trayItems(){const items=[
     {label:'打开桌宠控制台',click:openSettings},
@@ -59,7 +53,7 @@ if(!app.requestSingleInstanceLock()){app.quit();}else{
     {label:'显示宠物',click:()=>policy?.setManualHidden(false)},
     {label:'隐藏宠物',click:()=>policy?.setManualHidden(true)},
     {label:'隐藏托盘图标',click:()=>setTrayVisible(false)},{label:'打开配置与宠物素材目录',click:()=>shell.openPath(dataDir)},
-    {type:'separator'},{label:'关于 pet-with-you',click:()=>showAbout().catch(console.error)},{label:'退出桌宠',click:()=>app.quit()}];return items;}
+    {type:'separator'},{label:'关于 pet-with-you',click:()=>shell.openExternal(REPOSITORY_URL).catch(()=>dialog.showErrorBox('无法打开项目主页','请检查默认浏览器设置，项目地址：'+REPOSITORY_URL))},{label:'退出桌宠',click:()=>app.quit()}];return items;}
   const largeTrayMenu=new (require('./tray-menu.cjs').TrayMenu)({dataDir,getItems:trayItems});
   function setTrayVisible(value){
     trayVisible=value;
@@ -72,6 +66,22 @@ if(!app.requestSingleInstanceLock()){app.quit();}else{
   function reviewHooks(){
     if(developmentPreview)throw new Error('开发预览不审阅日常客户端 Hooks；请使用隔离测试验证联动。');
     return shell.openPath(path.join(__dirname,'Review-Hooks.cmd')).then(error=>{if(error)throw new Error(error);});
+  }
+  async function createPetShortcutWithDialog(){
+    const selected=await dialog.showOpenDialog(settings,{title:'选择桌宠快捷方式保存目录',defaultPath:app.getPath('desktop'),properties:['openDirectory','createDirectory']});
+    if(selected.canceled||!selected.filePaths.length)return {canceled:true};
+    return require('./pet-shortcut.cjs').createPetShortcut({directory:selected.filePaths[0],root:__dirname,executable:process.execPath,packaged:app.isPackaged,development:developmentPreview,shell});
+  }
+  async function offerFirstRunShortcut(window){
+    if(developmentPreview||process.env.PET_TEST_DATA_DIR||shortcutPromptPending||window.isDestroyed())return;
+    shortcutPromptPending=true;
+    try{
+      const result=await require('./pet-shortcut.cjs').offerFirstRunShortcut({store:settingsStore,dialog,parent:window,createShortcut:createPetShortcutWithDialog});
+      if(result.ok&&!window.isDestroyed())await dialog.showMessageBox(window,{type:'info',title:'快捷方式已创建',message:'已创建 pet-with-u 快捷方式',detail:result.file,buttons:['确定']});
+    }catch(error){
+      service.diagnostics.record('settings',error,'settings-failed');
+      if(!window.isDestroyed())await dialog.showMessageBox(window,{type:'error',title:'快捷方式创建未完成',message:'请稍后重试，或从基础设置底部创建快捷方式。',detail:error.message,buttons:['确定']});
+    }finally{shortcutPromptPending=false;}
   }
   function openSettings(){
     if(settings&&!settings.isDestroyed()){settings.show();settings.focus();return;}
@@ -88,21 +98,19 @@ if(!app.requestSingleInstanceLock()){app.quit();}else{
     });
     settings.webContents.setWindowOpenHandler(({url})=>{if([REPOSITORY_URL,MAINTAINER_URL,UPSTREAM_URL].includes(url))shell.openExternal(url);return {action:'deny'};});
     settings.webContents.on('will-navigate',event=>event.preventDefault());
+    settings.webContents.once('did-finish-load',()=>{offerFirstRunShortcut(window).catch(console.error);});
     settings.loadURL(service.base+'/settings');
   }
   app.on('pet-open-settings',openSettings);
   app.on('pet-show-request',win=>{if(policy)policy.requestShow(win);else win.showInactive();});
   startServer({dataDir,defaultMode:'pet',monitorSessions:!process.env.PET_TEST_DATA_DIR,
+    onRuntimeInfo:()=>({name:PRODUCT_NAME,version:app.getVersion(),development:developmentPreview}),
+    onClientLauncherStatus:()=>require('./client-launcher.cjs').clientLauncherStatus(dataDir),
     onSettingsLocate(file){if(!process.env.PET_TEST_DATA_DIR)shell.showItemInFolder(file);},
+    onPetShortcut:createPetShortcutWithDialog,
     async onClientLauncher(){
       if(developmentPreview||process.env.PET_TEST_DATA_DIR)throw new Error('隔离预览不修改真实客户端启动入口，请在正式运行版本中配置。');
-      const launcher=require('./client-launcher.cjs'),targets=launcher.discoverClients();
-      const labels=targets.map(target=>target.name+'（系统应用）');
-      const choice=await dialog.showMessageBox(settings,{title:'配置 GPT 联动启动入口',message:'选择平时使用的 GPT / Codex 桌面客户端',detail:'创建桌面与开始菜单的“GPT 联动启动”快捷方式。不会替换原版客户端程序；任务栏请固定新入口。',buttons:[...labels,'选择其他程序或原始快捷方式','取消'],cancelId:labels.length+1});
-      if(choice.response===labels.length+1)return {canceled:true};
-      let target=targets[choice.response];
-      if(!target){const selected=await dialog.showOpenDialog(settings,{title:'选择客户端原始启动程序或快捷方式（不是 codex.exe 命令行）',properties:['openFile'],filters:[{name:'应用或快捷方式',extensions:['exe','lnk']}]});if(selected.canceled)return {canceled:true};target={kind:'file',file:selected.filePaths[0]};}
-      return launcher.createClientLaunchers({dataDir,root:__dirname,executable:process.execPath,packaged:app.isPackaged,target});
+      return require('./client-launcher.cjs').createClientLauncherWithDialogs({dialog,parent:settings,desktop:app.getPath('desktop'),dataDir,root:__dirname,executable:process.execPath,packaged:app.isPackaged});
     },
     async onOpenThread(id){await shell.openExternal('codex://threads/'+encodeURIComponent(id));},
     async onLogsOpen(directory){const error=await shell.openPath(directory);if(error)throw new Error('无法打开日志目录');},

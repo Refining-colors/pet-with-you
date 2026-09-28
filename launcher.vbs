@@ -14,4 +14,8 @@ If WScript.Arguments.Count > 0 Then
   If mode = "client" Then args = " --launch-client"
 End If
 sh.CurrentDirectory = root
+If mode = "dev" Then
+  sh.Run q & nodeExe & q & " " & q & root & "\scripts\dev.cjs" & q, 0, False
+  WScript.Quit
+End If
 sh.Run q & nodeExe & q & " " & q & root & "\launch.cjs" & q & args, 0, False

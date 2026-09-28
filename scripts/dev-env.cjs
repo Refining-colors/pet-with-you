@@ -14,7 +14,7 @@ function developmentEnvironment(root, inherited = process.env) {
 }
 
 function assertDevelopmentPreferences(preferences) {
-  if (preferences.autostart || preferences.followClientStart || preferences.followClientClose) {
+  if (preferences.autostart || preferences.followClientClose) {
     throw new Error('开发预览不支持开机启动或随客户端启停，请关闭这些选项后再保存。');
   }
 }

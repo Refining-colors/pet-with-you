@@ -6,12 +6,16 @@ if (-not $Installer) {
   $Installer = Join-Path $petRoot "dist\pet-with-you-$petVersion-x64-setup.exe"
 }
 $Installer = (Resolve-Path -LiteralPath $Installer).Path
-$petDesktop = Join-Path ([Environment]::GetFolderPath('Desktop')) 'pet-with-you.lnk'
-$petMenu = Join-Path ([Environment]::GetFolderPath('Programs')) 'pet-with-you.lnk'
-$petJointName='GPT '+[char]0x8054+[char]0x52A8+[char]0x542F+[char]0x52A8+'.lnk'
+$petDesktop = Join-Path ([Environment]::GetFolderPath('Desktop')) 'pet-with-u.lnk'
+$petMenu = Join-Path ([Environment]::GetFolderPath('Programs')) 'pet-with-u.lnk'
+$petLegacyLinks = @([Environment]::GetFolderPath('Desktop'), [Environment]::GetFolderPath('Programs')) | ForEach-Object { Join-Path $_ 'pet-with-you.lnk' }
+if (@($petLegacyLinks | Where-Object { Test-Path -LiteralPath $_ }).Count) { throw 'A legacy shortcut exists; use a clean Windows account for this test.' }
+$petLegacyJointName='GPT '+[char]0x8054+[char]0x52A8+[char]0x542F+[char]0x52A8+'.lnk'
+foreach ($petFolder in @([Environment]::GetFolderPath('Desktop'), [Environment]::GetFolderPath('Programs'))) { if (Test-Path -LiteralPath (Join-Path $petFolder $petLegacyJointName)) { throw 'A legacy joint launcher exists; use a clean Windows account.' } }
+$petJointName='Codex withu.lnk'
 $petJointDesktop=Join-Path ([Environment]::GetFolderPath('Desktop')) $petJointName
 $petJointMenu=Join-Path ([Environment]::GetFolderPath('Programs')) $petJointName
-$petExisting = Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*' -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -eq 'pet-with-you' }
+$petExisting = Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*' -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -like 'pet-with-you*' }
 if ($petExisting -or (Test-Path -LiteralPath $petDesktop) -or (Test-Path -LiteralPath $petMenu)) { throw 'An existing installation or shortcut exists; use a clean Windows account for this test.' }
 if((Test-Path -LiteralPath $petJointDesktop) -or (Test-Path -LiteralPath $petJointMenu)){throw 'Joint launcher already exists; use a clean Windows account for this test.'}
 $petTempBase = [IO.Path]::GetFullPath([IO.Path]::GetTempPath())

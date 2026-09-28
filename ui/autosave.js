@@ -4,7 +4,7 @@
   const status=document.createElement('p');status.id='autosaveStatus';status.setAttribute('role','status');
   status.textContent='修改后关闭设置即可自动保存并应用。';
   document.querySelector('.settings-tabs').after(status);
-  const preferenceIds=['disableEventResponse','alwaysOnTop','fullscreenMode','clickAction','actionSpeed','autostart','snapMode','followClientStart','followClientClose','replySeconds','quotaAfterTurn','quotaMode','quotaSeconds','chatSource','autoWhisperProbability','disableRoaming','ignoreAccountTimeouts','taskBasicFeedback','taskNativeFeedback','whisperStreaming'];
+  const preferenceIds=['disableEventResponse','alwaysOnTop','fullscreenMode','clickAction','actionSpeed','autostart','snapMode','followClientClose','replySeconds','quotaAfterTurn','quotaMode','quotaSeconds','chatSource','autoWhisperProbability','disableRoaming','ignoreAccountTimeouts','taskBasicFeedback','taskNativeFeedback','whisperStreaming'];
   const apiIds=['apiProfileName','apiBaseUrl','apiModel','apiKey'];
   const proxyIds=['proxyProfileName','proxyName','proxyEndpoint','credential','envName','proxyKey','authHeader','bearer','quotaFormat','valuePath','totalPath','quotaScale','quotaUnit','clientCredential'];
   const configSelector='#pets input,#clientPets input,#categories input,[data-whisper-pet],#collision,#notify,#interval,#apiWhisperInterval';
