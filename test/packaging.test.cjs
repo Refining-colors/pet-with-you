@@ -25,9 +25,14 @@ test('desktop shortcut resolves its moved source folder and preserves the tray i
   const command = ". " + literal(path.join(root,'shell-shortcut.ps1')) + ";$s=New-PetShortcut " + literal(path.join(folder, 'pet-with-u.lnk')) + "; [Console]::OutputEncoding=[System.Text.Encoding]::UTF8; @{target=$s.TargetPath;arguments=$s.Arguments;working=$s.WorkingDirectory;icon=$s.IconLocation}|ConvertTo-Json -Compress";
   const link = JSON.parse(execFileSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', command], { encoding: 'utf8', windowsHide: true }).replace(/^\uFEFF/, ''));
   assert.match(link.target, /wscript\.exe$/i);
-  assert.ok(link.arguments.includes(path.join(folder, 'launcher.vbs')));
-  assert.equal(link.working, folder);
-  assert.ok(link.icon.startsWith(path.join(folder, 'build/icon.ico')));
+  // PowerShell expands 8.3 aliases (e.g. RUNNER~1) in its script directory.
+  // Validate the referenced files rather than requiring the same path spelling.
+  const launcherArgument = /^"([^"]+)" normal "([^"]+)"$/.exec(link.arguments);
+  assert.ok(launcherArgument, 'Unexpected shortcut arguments: ' + link.arguments);
+  assert.equal(fs.realpathSync.native(launcherArgument[1]), fs.realpathSync.native(path.join(folder, 'launcher.vbs')));
+  assert.equal(fs.realpathSync.native(link.working), fs.realpathSync.native(folder));
+  assert.equal(fs.realpathSync.native(link.icon.slice(0, link.icon.lastIndexOf(','))), fs.realpathSync.native(path.join(folder, 'build/icon.ico')));
+  assert.ok(fs.existsSync(launcherArgument[2]), 'The selected Node executable must exist');
   const original=fs.readFileSync(path.join(folder,'pet-with-u.lnk'));
   execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', path.join(folder, 'scripts/create-shortcut.ps1'), '-DestinationDirectory', folder], { windowsHide: true });
   assert.deepEqual(fs.readFileSync(path.join(folder,'pet-with-u.lnk')),original,'reinstall must preserve an existing shortcut');
