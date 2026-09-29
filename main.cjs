@@ -137,7 +137,7 @@ if(!app.requestSingleInstanceLock()){app.quit();}else{
     process.env.PET_CONNECT_ONLY=runtimeStarted?'0':'1';
     require('./runtime/main.js');
     app.whenReady().then(()=>{
-      policy=new WindowPolicy({getWindows:()=>BrowserWindow.getAllWindows().filter(w=>w!==settings&&!w.isPetTrayMenu),getPreferences:()=>service.preferences.value,onState:state=>{
+      policy=new WindowPolicy({getWindows:()=>require('./runtime/main.js').getPetWindows(),getPreferences:()=>service.preferences.value,onState:state=>{
         lastClientRunning=typeof state.clientRunning==='boolean'?state.clientRunning:null;
         if(typeof state.clientRunning==='boolean'){
           require('./runtime/main.js').setSnapTarget(state.clientWindows||[]);

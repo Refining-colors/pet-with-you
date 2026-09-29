@@ -14,12 +14,34 @@ $petLock = $null
 $petReadOnly = $null
 $petDenied = $null
 $petOriginalAcl = $null
+$petTestId = [Guid]::NewGuid().ToString('N')
+$petTestRegistry = "HKCU:\Software\pet-with-you-directory-test-$petTestId"
 function Test-PetDirectory([string]$Target, [int[]]$Expected) {
   $petProcess = Start-Process -FilePath $petCheck -ArgumentList "/D=$Target" -WindowStyle Hidden -Wait -PassThru
   if ($petProcess.ExitCode -notin $Expected) { throw "Unexpected directory check result $($petProcess.ExitCode), expected $Expected for $Target" }
   Write-Output "PASS: directory preflight returned $($petProcess.ExitCode) for $(Split-Path $Target -Leaf)"
 }
 try {
+  $petNormalizeExe = Join-Path $petTemp 'normalize.exe'
+  & $Compiler /V2 "/DPET_OUTPUT=$petNormalizeExe" "/DPET_TEST_ID=$petTestId" "/DPET_DIRECTORY=$(Join-Path $petRoot 'build\install-directory.nsh')" (Join-Path $petRoot 'test\installer-directory.nsi')
+  if ($LASTEXITCODE -ne 0) { throw 'Directory normalization compilation failed.' }
+  $petParent = Join-Path $petTemp ("parent ' " + [char]0x4E2D + [char]0x6587)
+  $petChild = Join-Path $petParent 'pet-with-you'
+  $petLegacy = Join-Path $petTemp 'old-custom-folder'
+  New-Item -ItemType Directory -Path $petLegacy -Force | Out-Null
+  Set-Content -LiteralPath (Join-Path $petLegacy 'pet-with-you.exe') -Value 'Old program fixture.'
+  New-Item -Path $petTestRegistry -Force | Out-Null
+  Set-ItemProperty -LiteralPath $petTestRegistry -Name InstallLocation -Value $petLegacy
+  foreach ($petCase in @(
+    @($petParent, $petChild), @($petChild, $petChild), @(($petChild+'\'), $petChild),
+    @((Join-Path $petTemp 'pet-with-you collection'), (Join-Path $petTemp 'pet-with-you collection\pet-with-you')),
+    @($petLegacy, $petLegacy)
+  )) {
+    $petProcess = Start-Process -FilePath $petNormalizeExe -ArgumentList ('/D='+$petCase[0]) -WindowStyle Hidden -Wait -PassThru
+    $petNormalized = Get-Content -LiteralPath (Join-Path $petTemp 'normalized.txt') -Raw -Encoding Unicode
+    if ($petProcess.ExitCode -ne 0 -or $petNormalized -ne $petCase[1] -or -not (Test-Path -LiteralPath $petCase[1] -PathType Container)) { throw "Incorrect final installation directory: $petNormalized" }
+  }
+  Write-Output 'PASS: actual NSIS directory creation for parent, existing child, trailing slash, substring and registered legacy location.'
   & $Compiler /V2 "/DPET_OUTPUT=$petCheck" "/DPET_PREFLIGHT=$(Join-Path $petRoot 'build\install-preflight.nsh')" (Join-Path $petRoot 'test\installer-preflight.nsi')
   if ($LASTEXITCODE -ne 0) { throw 'Directory check compilation failed.' }
   Test-PetDirectory (Join-Path $petTemp 'Apifox\pet-with-you') @(0)
@@ -58,6 +80,7 @@ try {
   Set-Acl -LiteralPath $petDenied -AclObject $petDeniedAcl
   Test-PetDirectory $petDenied @(5)
 } finally {
+  if (Test-Path -LiteralPath $petTestRegistry) { Remove-Item -LiteralPath $petTestRegistry -Force }
   if ($petLock) { $petLock.Dispose() }
   if ($petReadOnly -and (Test-Path -LiteralPath $petReadOnly)) { (Get-Item -LiteralPath $petReadOnly).IsReadOnly = $false }
   if ($petDenied -and $petOriginalAcl) { Set-Acl -LiteralPath $petDenied -AclObject $petOriginalAcl }

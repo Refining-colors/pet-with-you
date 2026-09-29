@@ -14,7 +14,13 @@ function visit(dir){
  }
 }
 visit(root);
+assert.ok(!fs.existsSync(path.join(root,'docs/images')),'Documentation gallery must not inflate the runtime package');
 assert.equal(require(path.join(root,'package.json')).version,require('../package.json').version);
 for(const name of ['LICENSE','LICENSE.upstream','ATTRIBUTION.md','build/icon.ico','build/codex-withu.ico'])assert.ok(fs.existsSync(path.join(root,name)),name+' missing');
 assert.equal(fs.readdirSync(path.join(root,'assets/webm')).filter(x=>x.endsWith('.webm')).length,106);
+const crypto=require('node:crypto');
+for(const name of fs.readdirSync(path.join(__dirname,'../assets/webm')).filter(x=>x.endsWith('.webm'))){
+  const hash=file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+  assert.equal(hash(path.join(root,'assets/webm',name)),hash(path.join(__dirname,'../assets/webm',name)),'Animation changed during packaging: '+name);
+}
 console.log(JSON.stringify({result:'PASS',files:count,version:require('../package.json').version,scope:'Packaged application inventory and credential patterns; fonts, personal data and media experiments excluded'}));

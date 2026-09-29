@@ -1,3 +1,4 @@
+param([int]$WatchProcessId=0)
 $ErrorActionPreference='Stop'
 Add-Type -TypeDefinition @'
 using System;
@@ -13,8 +14,23 @@ public class PetForeground {
   [DllImport("user32.dll")] static extern IntPtr MonitorFromWindow(IntPtr h,uint flags);
   [DllImport("user32.dll")] static extern bool GetMonitorInfo(IntPtr h,ref Monitor m);
   [DllImport("user32.dll")] static extern bool IsIconic(IntPtr h);
+  [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr h);
+  [DllImport("user32.dll")] static extern int GetWindowLong(IntPtr h,int index);
+  delegate bool EnumProc(IntPtr h,IntPtr data);
+  [DllImport("user32.dll")] static extern bool EnumWindows(EnumProc callback,IntPtr data);
   [DllImport("user32.dll")] static extern bool SetProcessDpiAwarenessContext(IntPtr value);
   [DllImport("dwmapi.dll")] static extern int DwmGetWindowAttribute(IntPtr h,int attribute,out Rect r,int size);
+  public static string Owned(int processId,long foregroundId) {
+    var result=new System.Collections.Generic.List<string>();
+    bool passed=false;
+    EnumWindows(delegate(IntPtr h,IntPtr data){
+      if(h.ToInt64()==foregroundId)passed=true;
+      uint pid;GetWindowThreadProcessId(h,out pid);
+      if(pid==processId)result.Add("{\"id\":\""+h.ToInt64()+"\",\"visible\":"+(IsWindowVisible(h)?"true":"false")+",\"minimized\":"+(IsIconic(h)?"true":"false")+",\"topmost\":"+((GetWindowLong(h,-20)&8)!=0?"true":"false")+",\"aboveForeground\":"+(foregroundId==0?"null":passed?"false":"true")+"}");
+      return true;
+    },IntPtr.Zero);
+    return "["+String.Join(",",result)+"]";
+  }
   public static string Window(long handle) {
     var h=new IntPtr(handle);Rect r;
     if(IsIconic(h)||(DwmGetWindowAttribute(h,9,out r,Marshal.SizeOf(typeof(Rect)))!=0&&!GetWindowRect(h,out r)))return "null";
@@ -37,6 +53,8 @@ $petKnownClients=New-Object 'System.Collections.Generic.HashSet[int]'
 while($true){
   try{
     $petState=[PetForeground]::Read()|ConvertFrom-Json
+    $petOwned=[PetForeground]::Owned($WatchProcessId,[long]$petState.foregroundId)|ConvertFrom-Json
+    $petState|Add-Member -NotePropertyName ownedWindows -NotePropertyValue @($petOwned)
     if($petState.pid){
       $petProcess=Get-Process -Id $petState.pid -ErrorAction SilentlyContinue
       $petName=if($petProcess){$petProcess.ProcessName}else{''}

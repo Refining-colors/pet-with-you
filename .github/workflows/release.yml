@@ -5,7 +5,7 @@ on:
       tag:
         description: Existing version tag to build
         required: true
-        default: v0.1.0-alpha.7
+        default: v0.1.0-alpha.7.1
 permissions:
   contents: write
 concurrency:
@@ -39,6 +39,19 @@ jobs:
         run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-install-directory.ps1
       - name: Verify installation, shortcuts, bundled runtime and uninstall
         run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-installer.ps1
+      - name: Verify upgrade from published alpha.7
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $petOldFolder = Join-Path $env:RUNNER_TEMP 'pet-previous-release'
+          gh release download v0.1.0-alpha.7 --repo Refining-colors/pet-with-you --pattern pet-with-you-0.1.0-alpha.7-x64-setup.exe --dir $petOldFolder
+          if ($LASTEXITCODE -ne 0) { throw 'Previous installer download failed.' }
+          $petOldInstaller = Join-Path $petOldFolder 'pet-with-you-0.1.0-alpha.7-x64-setup.exe'
+          $petOldHash = (Get-FileHash -LiteralPath $petOldInstaller -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($petOldHash -ne 'cab7dfe8e28941581f5502dadd98697d81a4964be474d1db9aa846a6670e8e09') { throw 'Previous installer checksum mismatch.' }
+          powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-installer.ps1 -PreviousInstaller $petOldInstaller
+          if ($LASTEXITCODE -ne 0) { throw 'Cross-version upgrade verification failed.' }
       - name: Prepare checksums and installation guide
         shell: pwsh
         run: |

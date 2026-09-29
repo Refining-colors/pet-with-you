@@ -132,12 +132,13 @@ module.exports=async function verify({service,openSettings,getSettings,largeTray
       return {manual,preserved,moved,stationary};
     })()`);
     assert.deepEqual(manualRun,{manual:true,preserved:true,moved:true,stationary:true});
-    await settings.webContents.executeJavaScript(`document.querySelector('#disableRoaming').checked=false;document.querySelector('#disableRoaming').onchange()`);
+    await settings.webContents.executeJavaScript(`document.querySelector('#disableRoaming').checked=false;document.querySelector('#disableRoaming').onchange();window.PetSettingsAutosave.flush()`);
     const menu=await pet().webContents.executeJavaScript(`(()=>{const s=sprites[0];s.justDragged=false;s.onContextMenu({preventDefault(){},clientX:300,clientY:300});return document.querySelector('.dsh-pet-menu').textContent;})()`);
     assert.ok(menu.includes('窗口设置')&&menu.includes('碎碎念')&&menu.includes('对话'));
     await request('/preferences',{windowMode:'normal'});
+    assert.ok(require('../runtime/main.js').getPetWindows().includes(pet()),'recreated pet stays registered with the window policy');
     await pet().webContents.executeJavaScript(`sprites[0].onMenuAction({action:'toggle-top'})`);await sleep(500);
-    assert.equal(pet().isAlwaysOnTop(),true);
+    assert.equal(pet().isAlwaysOnTop(),true,JSON.stringify({mode:(await request('/preferences')).windowMode,registered:require('../runtime/main.js').getPetWindows().map(w=>w.id),pet:pet().id}));
     assert.equal((await request('/preferences')).windowMode,'top');
     await pet().webContents.executeJavaScript(`sprites[0].onMenuAction({action:'fullscreen-never'})`);await sleep(500);
     assert.equal(pet().isAlwaysOnTop(),false);
@@ -197,6 +198,7 @@ module.exports=async function verify({service,openSettings,getSettings,largeTray
     assert.equal(await pet().webContents.executeJavaScript('window.__dshPetDebug.configOk'),true);
     fs.writeFileSync(path.join(dir,'reply.png'),(await pet().webContents.capturePage()).toPNG());
     await require('./autosave-verify.cjs')({service,openSettings,getSettings});
+    await require('./window-stacking-verify.cjs')();
     app.quit();
   }catch(e){console.error(e);app.exit(1);}
 };

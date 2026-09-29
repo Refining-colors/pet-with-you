@@ -2,6 +2,25 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const {shouldHide,WindowPolicy}=require('../window-policy.cjs');
 const {defaults,validatePreferences}=require('../preferences.cjs');
+const {nativeId}=require('../window-policy.cjs');
+test('Windows explicitly uses the native topmost band rather than floating',()=>{
+  const {setTopmost}=require('../window-mode.cjs');const calls=[];
+  const w={setAlwaysOnTop:(...args)=>calls.push(args)};
+  setTopmost(w,true);setTopmost(w,false);
+  assert.deepEqual(calls,[[true,process.platform==='win32'?'screen-saver':'floating'],[false,process.platform==='win32'?'screen-saver':'floating']]);
+});
+
+test('new pure-pet preferences start in ordinary display and cannot retain GPT-only mode',()=>{
+  const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
+  const {Preferences}=require('../preferences.cjs');
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'pet-default-window-'));
+  try{
+    const p=new Preferences(dir);assert.equal(p.value.mode,'pet');assert.equal(p.value.windowMode,'normal');
+    assert.equal(p.value.alwaysOnTop,false);assert.equal(p.value.fullscreenMode,'never');
+    p.save({mode:'connected',windowMode:'gpt'});assert.equal(p.value.windowMode,'gpt');
+    p.save({mode:'pet'});assert.equal(p.value.windowMode,'normal');
+  }finally{fs.rmSync(dir,{recursive:true,force:true});}
+});
 const bounds={x:100,y:100,width:300,height:300};
 const state={fullscreen:true,process:'game',monitor:{x:0,y:0,width:1920,height:1080}};
 function fixture(mode='gpt'){
@@ -15,12 +34,50 @@ test('GPT mode follows foreground ownership, and other window choices are exclus
   const f=fixture();
   f.policy.acceptState({...state,process:'Codex'});assert.equal(f.w.isAlwaysOnTop(),true);assert.equal(f.w.isVisible(),true);
   f.policy.acceptState({pid:process.pid});assert.equal(f.w.isAlwaysOnTop(),true,'own pet/settings retain last external foreground');
+  f.policy.acceptState({pid:process.pid,clientRunning:false});assert.equal(f.w.isAlwaysOnTop(),false,'closed client cannot leave stale GPT topmost while our settings own focus');
   f.policy.acceptState({...state,process:'editor',fullscreen:false});assert.equal(f.w.isAlwaysOnTop(),false);assert.equal(f.w.isVisible(),true);
   f.policy.acceptState(state);assert.equal(f.w.isVisible(),false);
   f.mode('top');assert.equal(f.w.isVisible(),true);assert.equal(f.w.isAlwaysOnTop(),true);
   f.mode('normal');assert.equal(f.w.isVisible(),true);assert.equal(f.w.isAlwaysOnTop(),false);
   f.mode('fullscreen');assert.equal(f.w.isVisible(),false);
   f.policy.acceptState({});assert.equal(f.w.isVisible(),true);assert.equal(f.w.isAlwaysOnTop(),true);
+});
+
+test('native evidence repairs a late cover or same-handle restore, and is consumed once',()=>{
+  const f=fixture();f.w.getNativeWindowHandle=()=>Buffer.from([42,0,0,0,0,0,0,0]);
+  const snapshot={process:'Codex',pid:process.pid+1,foregroundId:'client',ownedWindows:[{id:'42',topmost:true,visible:true,minimized:false,aboveForeground:true}]};
+  f.policy.acceptState(snapshot);const first=f.raises;
+  f.policy.acceptState({...snapshot,ownedWindows:[{...snapshot.ownedWindows[0],aboveForeground:false}]});
+  assert.equal(f.raises,first+1,'same client handle but native stacking changed');
+  f.policy.apply();assert.equal(f.raises,first+1,'stale sample must not reassert again');
+  f.policy.acceptState(snapshot);assert.equal(f.raises,first+1,'healthy stacking needs no repair');
+  f.policy.acceptState({...snapshot,ownedWindows:[{...snapshot.ownedWindows[0],topmost:false}]});
+  assert.equal(f.raises,first+2,'repair native topmost even when Electron says true');
+  f.w.hide();
+  f.policy.acceptState({...snapshot,ownedWindows:[{...snapshot.ownedWindows[0],visible:false,minimized:true}]});
+  assert.equal(f.w.isVisible(),true,'eligible previously shown pet recovers unexpected OS hiding');
+  f.policy.setManualHidden(true);const hiddenRaises=f.raises;
+  f.policy.acceptState(snapshot);assert.equal(f.w.isVisible(),false);assert.equal(f.raises,hiddenRaises);
+});
+
+test('native correction respects own settings, startup, fullscreen, other apps and mode changes',()=>{
+  const f=fixture();f.w.getNativeWindowHandle=()=>Buffer.from([42,0,0,0]);
+  assert.equal(nativeId(f.w),'42');
+  const bad={id:'42',visible:false,minimized:false,topmost:false,aboveForeground:false};
+  f.w.hide();
+  f.policy.acceptState({process:'Codex',pid:process.pid+1,ownedWindows:[bad]});
+  assert.equal(f.w.isVisible(),false,'do not show an unpainted startup window');
+  f.policy.requestShow(f.w);assert.equal(f.w.isVisible(),true);
+  const count=f.raises;
+  f.policy.acceptState({pid:process.pid,ownedWindows:[{...bad,visible:true,topmost:true}]});
+  assert.equal(f.raises,count,'do not fight our settings or tray menu');
+  f.policy.acceptState({...state,pid:process.pid+1,ownedWindows:[bad]});
+  assert.equal(f.w.isVisible(),false,'other fullscreen app wins over recovery');
+  f.policy.acceptState({process:'editor',pid:process.pid+1,ownedWindows:[bad]});
+  assert.equal(f.w.isVisible(),true);assert.equal(f.w.isAlwaysOnTop(),false);
+  f.mode('normal');const normalRaises=f.raises;
+  f.policy.acceptState({process:'Codex',pid:process.pid+1,ownedWindows:[bad]});
+  assert.equal(f.raises,normalRaises);assert.equal(f.w.isAlwaysOnTop(),false);
 });
 test('tray reveal overrides manual and fullscreen hiding temporarily without repeated raising',()=>{
   const f=fixture();f.policy.acceptState(state);f.policy.setManualHidden(true);
@@ -45,12 +102,13 @@ test('legacy preferences migrate to one persistent mode',()=>{
   }finally{fs.rmSync(dir,{recursive:true,force:true});}
 });
 test('fullscreen policies distinguish GPT, maximized windows and other screens',()=>{
-  assert.equal(shouldHide(defaults,state,bounds),true);
-  assert.equal(shouldHide(defaults,{...state,process:'Codex'},bounds),false);
+  const gpt={...defaults,windowMode:'gpt'};
+  assert.equal(shouldHide(gpt,state,bounds),true);
+  assert.equal(shouldHide(gpt,{...state,process:'Codex'},bounds),false);
   assert.equal(shouldHide({...defaults,windowMode:'fullscreen'},{...state,process:'ChatGPT'},bounds),true);
   assert.equal(shouldHide({...defaults,windowMode:'normal'},state,bounds),false);
-  assert.equal(shouldHide(defaults,{...state,fullscreen:false},bounds),false);
-  assert.equal(shouldHide(defaults,state,{...bounds,x:2200}),false);
+  assert.equal(shouldHide(gpt,{...state,fullscreen:false},bounds),false);
+  assert.equal(shouldHide(gpt,state,{...bounds,x:2200}),false);
   assert.throws(()=>validatePreferences({...defaults,actionSpeed:50}));
 });
 test('auto hide restores visibility but does not undo manual hiding',()=>{

@@ -1,7 +1,7 @@
 const fs=require('node:fs');
 const path=require('node:path');
 const {modes,legacyMode}=require('./window-mode.cjs');
-const defaults={disableEventResponse:false,quotaAfterTurn:false,quotaMode:'timed',quotaSeconds:10,whisperStreaming:true,autoWhisperProbability:50,ignoreAccountTimeouts:true,taskBasicFeedback:true,taskNativeFeedback:true,disableRoaming:false,mode:'pet',windowMode:'gpt',alwaysOnTop:false,fullscreenMode:'except-gpt',clickAction:'animation',actionSpeed:1.25,autostart:false,followClientClose:false,snapMode:'all',chatSource:'gpt',chatSourceChosen:false,replyMode:'timed',replySeconds:10,moduleOrder:{basic:[],gpt:[]}};
+const defaults={disableEventResponse:false,quotaAfterTurn:false,quotaMode:'timed',quotaSeconds:10,whisperStreaming:true,autoWhisperProbability:50,ignoreAccountTimeouts:true,taskBasicFeedback:true,taskNativeFeedback:true,disableRoaming:false,mode:'pet',windowMode:'normal',alwaysOnTop:false,fullscreenMode:'never',clickAction:'animation',actionSpeed:1.25,autostart:false,followClientClose:false,snapMode:'all',chatSource:'gpt',chatSourceChosen:false,replyMode:'timed',replySeconds:10,moduleOrder:{basic:[],gpt:[]}};
 function validatePreferences(raw){
   if(!Object.hasOwn(modes,raw.windowMode))throw new Error('窗口模式无效');
   raw={...raw,...modes[raw.windowMode]};
@@ -21,6 +21,6 @@ function validatePreferences(raw){
 }
 class Preferences{
   constructor(dir,initialMode=defaults.mode){this.store=new (require('./settings-store.cjs').SettingsStore)(dir);this.file=this.store.file;const saved=this.store.get('preferences',{});this.value=validatePreferences({...defaults,mode:initialMode,...saved,windowMode:saved.windowMode??legacyMode({...defaults,...saved})});if(!this.store.has('preferences')||Object.hasOwn(saved,'followClientStart')||!saved.windowMode)this.store.set('preferences',this.value);}
-  save(raw){if(!Object.hasOwn(raw,'windowMode')&&(Object.hasOwn(raw,'alwaysOnTop')||Object.hasOwn(raw,'fullscreenMode')))raw={...raw,windowMode:legacyMode({...this.value,...raw})};const next=validatePreferences({...this.value,...raw});this.store.set('preferences',next);this.value=next;return this.value;}
+  save(raw){if(!Object.hasOwn(raw,'windowMode')&&(Object.hasOwn(raw,'alwaysOnTop')||Object.hasOwn(raw,'fullscreenMode')))raw={...raw,windowMode:legacyMode({...this.value,...raw})};const merged={...this.value,...raw};if(merged.mode==='pet'&&merged.windowMode==='gpt')merged.windowMode='normal';const next=validatePreferences(merged);this.store.set('preferences',next);this.value=next;return this.value;}
 }
 module.exports={Preferences,defaults,validatePreferences};

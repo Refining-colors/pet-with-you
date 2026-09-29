@@ -23,6 +23,8 @@ for(const tab of [$('#basicTab'),$('#gptTab')])tab.onkeydown=e=>{if(['ArrowLeft'
 function applyMode(mode){
   currentMode=mode||'pet';document.body.dataset.mode=currentMode;
   $('#petMode').checked=currentMode==='pet';$('#connectedMode').checked=currentMode==='connected';$('#gptTab').hidden=currentMode!=='connected';
+  const gptMode=$('#windowMode option[value="gpt"]');gptMode.hidden=currentMode!=='connected';
+  if(currentMode==='pet'&&$('#windowMode').value==='gpt')$('#windowMode').value='normal';
   if(currentMode==='pet')$('#quotaSource').value='proxy';
   selectTab(currentTab);
 }
@@ -70,7 +72,7 @@ async function api(route,method='GET',body){const r=await fetch(base+route,{meth
 function showConnection(c){
   $('#reviewHooks').hidden=!c.needsReview;
   const local=c.monitor?.lastEvent;
-  $('#connectionStatus').textContent=(local?'本地任务状态已接通（'+new Date(local.at).toLocaleTimeString()+'） · ':'')+(c.ready?(c.lastHook?'事件配置已信任，已收到事件：'+c.lastHook.event:'Hooks 已信任，但尚未收到 Hook；任务反馈可由本地会话状态提供。'):c.needsReview?'已安装 '+c.installed+' 项事件配置，其中 '+c.needsReview+' 项尚未信任。':c.disabled?'有事件配置被停用，请在 /hooks 中检查。':'联动配置未完整加载，请点击连接并检查。');
+  const output=$('#connectionStatus');output.replaceChildren();if(local)output.append(text('span','本地任务状态已接通（'+new Date(local.at).toLocaleTimeString()+'） · '));const message=c.ready?(c.lastHook?'事件配置已信任，已收到事件：'+c.lastHook.event:'Hooks 已信任，但尚未收到 Hook；任务反馈可由本地会话状态提供。'):c.needsReview?'已安装 '+c.installed+' 项事件配置，其中 '+c.needsReview+' 项尚未信任。':c.disabled?'有事件配置被停用，请在 /hooks 中检查。':'联动配置未完整加载，请点击连接并检查。';output.append(text('span',message));if(c.needsReview){const strong=text('strong',' 首次需要在打开的 Codex 交互终端中输入 /hooks，完成信任后再回到这里检查。');strong.className='connection-next-step';output.append(strong);}
 }
 async function connectionStatus(){if(currentMode!=='connected')return;try{showConnection(await api('/connection'));}catch(e){$('#connectionStatus').textContent='联动检查失败：'+e.message;}}
 $('#connect').onclick=async()=>{loadQuotaContext();try{showConnection(await api('/connect','POST'));await loadPreferences();}catch(e){$('#connectionStatus').textContent=e.message;}};

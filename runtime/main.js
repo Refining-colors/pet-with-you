@@ -438,7 +438,7 @@ function createPetWindows() {
         spellcheck: false,
       },
     });
-    win.setAlwaysOnTop(true, 'floating');
+    require('../window-mode.cjs').setTopmost(win, true);
     win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
     win.webContents.on('will-navigate', event => event.preventDefault());
     win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
@@ -487,8 +487,11 @@ function createPetWindows() {
     }, POINTER_POLL_MS);
     win.on('closed', () => {
       clearInterval(pointerTimer);
-      windows.delete(pet.id);
-      petStates.delete(pet.id);
+      // A late close from the previous generation must not unregister its replacement.
+      if (windows.get(pet.id) === win) {
+        windows.delete(pet.id);
+        petStates.delete(pet.id);
+      }
       lastRequestedBounds.delete(win.id);
       windowIgnore.delete(win.id);
       inputBusy.delete(win.id);
@@ -815,6 +818,7 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   // The companion tray remains available when all pets are hidden/disabled.
 });
+module.exports.getPetWindows = () => [...windows.values()].filter(win => !win.isDestroyed());
 module.exports.recreate = function recreate() {
   positions.flush();
   for (const win of windows.values()) if (!win.isDestroyed()) win.destroy();
