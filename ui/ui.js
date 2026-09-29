@@ -70,13 +70,37 @@ setInterval(status,3000);
 
 async function api(route,method='GET',body){const r=await fetch(base+route,{method,headers:body?{'Content-Type':'application/json'}:undefined,body:body?JSON.stringify(body):undefined});const j=await r.json();if(!r.ok)throw new Error(j.message||j.error||'请求失败');return j;}
 function showConnection(c){
-  $('#reviewHooks').hidden=!c.needsReview;
+  $('#reviewHooks').hidden=false;
   const local=c.monitor?.lastEvent;
-  const output=$('#connectionStatus');output.replaceChildren();if(local)output.append(text('span','本地任务状态已接通（'+new Date(local.at).toLocaleTimeString()+'） · '));const message=c.ready?(c.lastHook?'事件配置已信任，已收到事件：'+c.lastHook.event:'Hooks 已信任，但尚未收到 Hook；任务反馈可由本地会话状态提供。'):c.needsReview?'已安装 '+c.installed+' 项事件配置，其中 '+c.needsReview+' 项尚未信任。':c.disabled?'有事件配置被停用，请在 /hooks 中检查。':'联动配置未完整加载，请点击连接并检查。';output.append(text('span',message));if(c.needsReview){const strong=text('strong',' 首次需要在打开的 Codex 交互终端中输入 /hooks，完成信任后再回到这里检查。');strong.className='connection-next-step';output.append(strong);}
+  const output=$('#connectionStatus');output.replaceChildren();
+  const title=c.disabled?'当前连接状态：部分事件已停用':c.needsReview?'当前连接状态：等待 Hooks 信任':c.ready&&c.lastHook?'当前连接状态：已收到 Hook 事件':local?'当前连接状态：本地任务状态已接通':c.ready?'当前连接状态：Hooks 已信任，等待事件':'当前连接状态：待连接 / 配置不完整';
+  output.append(text('strong',title));
+  if(local)output.append(text('span','本地任务最近更新：'+new Date(local.at).toLocaleTimeString()));
+  const message=c.ready?(c.lastHook?'最近 Hook：'+c.lastHook.event:'尚未收到 Hook；任务反馈可由本地会话状态提供。'):c.needsReview?'已安装 '+c.installed+' 项事件配置，其中 '+c.needsReview+' 项尚未信任。':c.disabled?'请在 /hooks 中检查已停用的事件配置。':'请点击“连接 / 检查客户端”准备联动配置。';
+  output.append(text('span',message));
 }
-async function connectionStatus(){if(currentMode!=='connected')return;try{showConnection(await api('/connection'));}catch(e){$('#connectionStatus').textContent='联动检查失败：'+e.message;}}
-$('#connect').onclick=async()=>{loadQuotaContext();try{showConnection(await api('/connect','POST'));await loadPreferences();}catch(e){$('#connectionStatus').textContent=e.message;}};
-$('#reviewHooks').onclick=async()=>{try{await api('/review-hooks','POST');$('#connectionStatus').textContent='已打开信任入口，请输入 /hooks 审阅桌宠事件。';}catch(e){$('#connectionStatus').textContent=e.message;}};
+let connectionRevision=0,connectionBusy=false;
+async function connectionStatus(){
+  if(currentMode!=='connected'||connectionBusy)return;
+  const revision=++connectionRevision;
+  try{const c=await api('/connection');if(revision===connectionRevision&&!connectionBusy&&currentMode==='connected')showConnection(c);}
+  catch(e){if(revision===connectionRevision&&!connectionBusy)$('#connectionNotice').textContent='联动检查失败：'+e.message;}
+}
+$('#connect').onclick=async()=>{
+  if(connectionBusy)return;
+  connectionBusy=true;++connectionRevision;
+  const button=$('#connect'),output=$('#connectionStatus');
+  button.disabled=true;button.textContent='正在检查…';output.setAttribute('aria-busy','true');output.classList.remove('connection-checked');
+  $('#connectionNotice').textContent='正在连接并检查客户端…';
+  try{
+    // Keep a fast local check perceptible, and invalidate older background polls.
+    const [c]=await Promise.all([api('/connect','POST'),new Promise(resolve=>setTimeout(resolve,450))]);
+    showConnection(c);$('#connectionNotice').textContent='检查完成 · '+new Date().toLocaleTimeString();output.classList.add('connection-checked');
+    await loadPreferences();
+  }catch(e){$('#connectionNotice').textContent='本次连接 / 检查失败：'+e.message;}
+  finally{connectionBusy=false;button.disabled=false;button.textContent='连接 / 检查客户端';output.setAttribute('aria-busy','false');}
+};
+$('#reviewHooks').onclick=async()=>{try{await api('/review-hooks','POST');$('#connectionNotice').textContent='已打开信任入口，请输入 /hooks 审阅桌宠事件，再回到这里检查。';}catch(e){$('#connectionNotice').textContent=e.message;}};
 setInterval(connectionStatus,15000);
 function fillQuota(q){
   window.PetSettingsAutosave?.clear('proxy');

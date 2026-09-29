@@ -42,6 +42,7 @@ module.exports = async function verify(settings) {
     const packaged = createPetShortcut({ directory, packaged: true, shell });
     assert.equal(shell.readShortcutLink(packaged.file).target, process.execPath);
     assert.equal(shell.readShortcutLink(packaged.file).args, '--settings');
+    assert.equal(shell.readShortcutLink(packaged.file).icon, process.execPath);
     const onboardingStore = new (require('../settings-store.cjs').SettingsStore)(path.join(directory, 'onboarding'));
     const firstRun = await offerFirstRunShortcut({
       store: onboardingStore, parent: settings,

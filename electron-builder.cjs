@@ -11,16 +11,18 @@ module.exports = {
   compression: 'maximum',
   files: [
     ...files.filter(name => name.endsWith('.md') || (name.endsWith('.cjs') && !['export-source.cjs', 'electron-builder.cjs', 'launch.cjs'].includes(name)) || ['package.json','tray.png','LICENSE.upstream','PREVIEW-NOTICE.txt','hook.cmd','Review-Hooks.cmd','Uninstall-Integration.cmd','startup-watch.ps1','fullscreen-watch.ps1','cleanup-startup.ps1','config.mjs'].includes(name)),
-    'LICENSE', 'shell-shortcut.ps1', 'launch-detached.ps1', 'assets/**/*', 'runtime/**/*', 'ui/**/*', 'docs/**/*', 'scripts/dev-env.cjs', 'build/icon.ico', 'build/codex-withu.ico', 'build/codex-withu.png',
+    'LICENSE', 'shell-shortcut.ps1', 'repair-shortcuts.ps1', 'launch-detached.ps1', 'assets/**/*', 'runtime/**/*', 'ui/**/*', 'docs/**/*', 'scripts/dev-env.cjs', 'build/icon.ico', 'build/codex-withu.ico', 'build/codex-withu.png',
     '!docs/images/**/*', '!assets/fonts/**/*', '!**/node_modules/**/*', '!**/.local/**/*', '!**/*.log',
   ],
   win: { target: [{ target: 'nsis', arch: ['x64'] }], icon: 'build/icon.ico', signAndEditExecutable: true },
   nsis: {
     oneClick: false, perMachine: false, allowElevation: false,
-    allowToChangeInstallationDirectory: true,
+    // The custom directory page shows the real branded destination before continuing.
+    allowToChangeInstallationDirectory: false,
     createDesktopShortcut: false, createStartMenuShortcut: true,
     shortcutName: 'pet-with-u', runAfterFinish: false,
     installerIcon: 'build/icon.ico', uninstallerIcon: 'build/icon.ico',
+    installerSidebar: 'build/pet-finish.bmp', uninstallerSidebar: 'build/pet-finish.bmp',
     include: 'build/installer.nsh', deleteAppDataOnUninstall: false,
     installerLanguages: ['zh_CN', 'en_US'],
     license: 'PREVIEW-NOTICE.txt',

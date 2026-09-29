@@ -3,12 +3,55 @@
 !include FileFunc.nsh
 !include MUI2.nsh
 
+ManifestDPIAware true
+ManifestDPIAwareness PerMonitorV2
+!define /ifndef MUI_TEXTCOLOR "203D54"
+
+!macro customHeader
+  ; Language tables otherwise replace the font with small bitmap SimSun glyphs.
+  SetFont /LANG=2052 "Microsoft YaHei UI" 10
+  SetFont /LANG=1033 "Segoe UI" 10
+!macroend
+
 !ifndef BUILD_UNINSTALLER
 !include "${BUILD_RESOURCES_DIR}\install-preflight.nsh"
 !include "${BUILD_RESOURCES_DIR}\install-directory.nsh"
 Var PetShortcutCheckbox
 Var PetCreateDesktopShortcut
 Var PetInstallPathLabel
+Var PetDirectoryText
+
+Function PetDirectoryPage
+  Call PetNormalizeInstallDirectory
+  nsDialogs::Create 1018
+  Pop $0
+  ${If} $0 == error
+    Abort
+  ${EndIf}
+  !insertmacro MUI_HEADER_TEXT "选择安装位置" "选择文件夹后，下面会显示实际安装的完整路径。"
+  ${NSD_CreateLabel} 0 10u 100% 24u "实际安装目录（自动补齐 pet-with-you）："
+  Pop $0
+  ${NSD_CreateText} 0 40u 100% 26u "$INSTDIR"
+  Pop $PetDirectoryText
+  SendMessage $PetDirectoryText ${EM_SETREADONLY} 1 0
+  ${NSD_CreateButton} 0 80u 100u 26u "选择文件夹…"
+  Pop $0
+  ${NSD_OnClick} $0 PetBrowseDirectory
+  ${NSD_CreateLabel} 0 122u 100% 36u "所选位置下会实际创建 pet-with-you 文件夹；选择已有的同名文件夹不会重复嵌套。"
+  Pop $0
+  nsDialogs::Show
+FunctionEnd
+
+Function PetBrowseDirectory
+  Pop $0
+  nsDialogs::SelectFolderDialog "选择安装位置的上级文件夹" "$INSTDIR"
+  Pop $0
+  ${If} $0 != error
+    StrCpy $INSTDIR $0
+    Call PetNormalizeInstallDirectory
+    ${NSD_SetText} $PetDirectoryText "$INSTDIR"
+  ${EndIf}
+FunctionEnd
 
 
 !macro customInit
@@ -31,19 +74,12 @@ Var PetInstallPathLabel
 !macroend
 
 !macro customPageAfterChangeDir
-  ; Replace the builder's substring check with a final-component check, including upgrades.
-  !undef MUI_PAGE_CUSTOMFUNCTION_PRE
-  !define MUI_PAGE_CUSTOMFUNCTION_PRE PetNormalizeInstallDirectory
+  Page custom PetDirectoryPage
   Page custom PetShortcutPage PetShortcutLeave
 !macroend
 
 Function PetShortcutPage
   Call PetNormalizeInstallDirectory
-  ; Retain the builder hook only where it cannot relocate a legacy installation.
-  ${GetFileName} "$INSTDIR" $0
-  ${If} $0 == "pet-with-you"
-    Call instFilesPre
-  ${EndIf}
   nsDialogs::Create 1018
   Pop $0
   ${If} $0 == error
@@ -74,19 +110,22 @@ FunctionEnd
   ${If} $PetCreateDesktopShortcut == ${BST_CHECKED}
     CreateShortCut "$DESKTOP\pet-with-u.lnk" "$INSTDIR\pet-with-you.exe" "" "$INSTDIR\pet-with-you.exe" 0
   ${EndIf}
+  nsExec::ExecToLog '"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$INSTDIR\resources\app\repair-shortcuts.ps1" -InstallDirectory "$INSTDIR"'
+  Pop $0
+  ${If} $0 != 0
+    DetailPrint "Shortcut icon refresh did not finish; recreate the shortcut from Settings if needed."
+  ${EndIf}
 !macroend
 
 !macro customWelcomePage
   !define MUI_WELCOMEPAGE_TITLE "欢迎使用 pet-with-you"
   !define MUI_WELCOMEPAGE_TEXT "一只蓝毛小女仆，陪你工作，也陪你发呆。安装程序会把文件放入独立的 pet-with-you 文件夹。"
-  !define MUI_WELCOMEPAGE_BITMAP "${BUILD_RESOURCES_DIR}\pet-finish.bmp"
   !insertmacro MUI_PAGE_WELCOME
 !macroend
 
 !macro customFinishPage
   !define MUI_FINISHPAGE_TITLE "pet-with-you 安装完成"
   !define MUI_FINISHPAGE_TEXT "安装已经完成。你可以从开始菜单或桌面上的 pet-with-u 启动。"
-  !define MUI_FINISHPAGE_BITMAP "${BUILD_RESOURCES_DIR}\pet-finish.bmp"
   !insertmacro MUI_PAGE_FINISH
 !macroend
 

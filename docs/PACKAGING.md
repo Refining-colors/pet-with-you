@@ -1,6 +1,8 @@
 # 预览版打包、安装与更新准备
 
-当前版本为 **0.1.0-alpha.7.1**，提供 Windows x64 公开预览安装包。代码采用 MIT，安装包不附带第三方字体。原作代码许可和角色素材限制仍见 [来源与致谢](../ATTRIBUTION.md)。[下载页面](https://github.com/Refining-colors/pet-with-you/releases/tag/v0.1.0-alpha.7.1)提供 EXE、校验文件和简明安装说明。
+当前版本为 **0.1.0-alpha.7.1.1**，提供 Windows x64 公开预览安装包。代码采用 MIT，安装包不附带第三方字体。原作代码许可和角色素材限制仍见 [来源与致谢](../ATTRIBUTION.md)。[下载页面](https://github.com/Refining-colors/pet-with-you/releases/tag/v0.1.0-alpha.7.1.1)提供 EXE、校验文件和简明安装说明。
+
+`0.1.0-alpha.7.1.1` 修正目录页即时预览、欢迎／完成页角色图、高分屏字体和快捷方式图标刷新。
 
 ## 给使用者
 
@@ -15,7 +17,7 @@
 
 ## 本机构建
 
-当前发布统一使用 `0.1.0-alpha.7.1` 源码、版本号和构建配置。旧安装包保留在历史 Release 供回溯，日常安装应使用最新下载页。以后打包前仍需同步版本号、锁文件、更新记录，并重新验证安装及快捷方式。
+当前发布统一使用 `0.1.0-alpha.7.1.1` 源码、版本号和构建配置。旧安装包保留在历史 Release 供回溯，日常安装应使用最新下载页。以后打包前仍需同步版本号、锁文件、更新记录，并重新验证安装及快捷方式。
 
 使用 Windows、Node.js 22.12+，在项目目录执行：
 
@@ -28,7 +30,7 @@ npm run audit:source
 npm run dist:win
 ```
 
-构建输出为 `dist/pet-with-you-0.1.0-alpha.7.1-x64-setup.exe`，另有 `dist/win-unpacked/` 便于检查。版本来自 `package.json` 与锁文件，后续修改必须同步。构建命令明确使用 `--publish never`，不会自行上传 GitHub。
+构建输出为 `dist/pet-with-you-0.1.0-alpha.7.1.1-x64-setup.exe`，另有 `dist/win-unpacked/` 便于检查。版本来自 `package.json` 与锁文件，后续修改必须同步。构建命令明确使用 `--publish never`，不会自行上传 GitHub。
 
 公开发布使用 **Build Windows release** 工作流：检出指定版本标签，运行源码检查、依赖审计、打包内容审计，并在干净 Windows runner 上真实安装/卸载两次，验证桌面快捷方式两种选择、开始菜单图标、无外部 Node.js 启动与用户数据保留。全部通过后生成带 EXE、SHA-256 和安装说明的预发布草稿；维护者核对后发布。已公开 Release 不自动覆盖。
 

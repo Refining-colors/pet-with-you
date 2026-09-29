@@ -21,6 +21,7 @@ if ($petExisting -or (Test-Path -LiteralPath $petDesktop) -or (Test-Path -Litera
 if((Test-Path -LiteralPath $petJointDesktop) -or (Test-Path -LiteralPath $petJointMenu)){throw 'Joint launcher already exists; use a clean Windows account for this test.'}
 $petTempBase = [IO.Path]::GetFullPath([IO.Path]::GetTempPath())
 $petTemp = Join-Path $petTempBase ('pet installer check ' + [Guid]::NewGuid().ToString('N'))
+$petSavedShortcut = Join-Path ([Environment]::GetFolderPath('Desktop')) ('pet-icon-test-' + [Guid]::NewGuid().ToString('N') + '.lnk')
 $petInstallParent = Join-Path $petTemp ('custom ' + [char]0x4E2D + [char]0x6587)
 $petInstall = Join-Path $petInstallParent 'pet-with-you'
 $petData = Join-Path $petTemp 'user-data'
@@ -73,6 +74,12 @@ try {
     $petHooks = @{ hooks = @{ Stop = @(@{ hooks = @(@{type='command'; command=$petHookCommand}, @{type='command'; command='echo fixture-unrelated'}) }) } } | ConvertTo-Json -Depth 8
     [IO.File]::WriteAllText($petHooksPath, $petHooks, (New-Object Text.UTF8Encoding($false)))
     $petOldVersion = (Get-Content -LiteralPath (Join-Path $petInstall 'resources\app\package.json') -Raw | ConvertFrom-Json).version
+    $petSavedLink = New-PetShortcut $petSavedShortcut
+    $petSavedLink.TargetPath = $petExe
+    $petSavedLink.Arguments = '--settings'
+    $petSavedLink.Description = 'Settings-created shortcut fixture'
+    $petSavedLink.IconLocation = (Join-Path $petInstall 'obsolete-resources\missing.ico') + ',0'
+    $petSavedLink.Save()
     # No /D: a normal upgrade must discover and reuse the registered location.
     $petProcess = Start-Process -FilePath $Installer -ArgumentList $petOptions -WindowStyle Hidden -Wait -PassThru
     $petNewVersion = (Get-Content -LiteralPath (Join-Path $petInstall 'resources\app\package.json') -Raw | ConvertFrom-Json).version
@@ -82,6 +89,8 @@ try {
     foreach ($petLinkPath in @($petMenu, $petJointDesktop, $petJointMenu)) {
       if ((New-PetShortcut $petLinkPath).TargetPath -ne $petExe) { throw 'Upgrade broke an existing shortcut.' }
     }
+    $petSavedLink = New-PetShortcut $petSavedShortcut
+    if ($petSavedLink.IconLocation -ne ($petExe + ',0') -or $petSavedLink.Arguments -ne '--settings' -or $petSavedLink.Description -ne 'Settings-created shortcut fixture') { throw 'Upgrade did not repair the existing shortcut icon or changed launch options.' }
     Write-Output "PASS: upgrade $petOldVersion -> $petNewVersion reuses its registered folder, preserves Hooks, user data and links."
     & node (Join-Path $PSScriptRoot 'verify-packaged.cjs') $petExe
     if ($LASTEXITCODE -ne 0) { throw 'Installed application smoke test failed.' }
@@ -109,6 +118,7 @@ try {
   }
 } finally {
   Uninstall-TestPet
+  if (Test-Path -LiteralPath $petSavedShortcut) { Remove-Item -LiteralPath $petSavedShortcut -Force }
   $env:CODEX_HOME = $petOldCodex
   $env:PET_TEST_DATA_DIR = $petOldData
   $petResolved = [IO.Path]::GetFullPath($petTemp)

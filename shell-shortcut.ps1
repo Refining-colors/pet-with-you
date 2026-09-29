@@ -31,6 +31,18 @@ interface IPetShellLinkW {
  void SetPath([MarshalAs(UnmanagedType.LPWStr)] string path);
 }
 public sealed class PetUnicodeShortcut {
+ [DllImport("shell32.dll", CharSet=CharSet.Unicode)]
+ static extern void SHChangeNotify(uint change, uint flags, string first, IntPtr second);
+ public static void RefreshIcons() { SHChangeNotify(0x08000000, 0, null, IntPtr.Zero); }
+ public static void UpdateIcon(string file, string icon) {
+  var link=(IPetShellLinkW)new PetShellLink();
+  try {
+   ((IPersistFile)link).Load(file,0);
+   link.SetIconLocation(icon,0);
+   ((IPersistFile)link).Save(file,true);
+   SHChangeNotify(0x00002000,0x0005,file,IntPtr.Zero);
+  } finally { Marshal.FinalReleaseComObject(link); }
+ }
  readonly string file;
  public string TargetPath { get; set; }
  public string Arguments { get; set; }

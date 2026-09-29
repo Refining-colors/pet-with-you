@@ -3,7 +3,7 @@ const path = require('node:path');
 
 function createPetShortcut({ directory, root = __dirname, executable = process.execPath, packaged = false, development = false, shell, nodeExecutable }) {
   if (!path.isAbsolute(directory) || !fs.statSync(directory).isDirectory()) throw new Error('请选择已存在的快捷方式保存目录。');
-  const icon = path.join(root, 'build', 'icon.ico');
+  const icon = packaged ? executable : path.join(root, 'build', 'icon.ico');
   const target = packaged ? executable : path.join(process.env.WINDIR, 'System32', 'wscript.exe');
   const launcher = path.join(root, 'launcher.vbs');
   let args = '--settings';

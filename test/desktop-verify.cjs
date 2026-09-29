@@ -100,6 +100,7 @@ module.exports=async function verify({service,openSettings,getSettings,largeTray
     assert.equal((await request('/client-launcher')).prompted,true);
     assert.equal(await settings.webContents.executeJavaScript(`document.querySelector('#clientLauncherDialog').open`),false);
     const tabs=await settings.webContents.executeJavaScript(`(()=>{document.querySelector('#apiBaseUrl').value='https://draft.example/v1';selectTab('gpt');const nested=['createClientLauncher','followClientClose','chatSource','notify','queryAccount','clientPets'].every(id=>document.querySelector('#gptPanel').contains(document.getElementById(id)));selectTab('basic');return {nested,draft:document.querySelector('#apiBaseUrl').value};})()`);
+    await require('./connection-ui-verify.cjs')(settings);
     assert.deepEqual(tabs,{nested:true,draft:'https://draft.example/v1'});
     assert.deepEqual(await pet().webContents.executeJavaScript('sprites[0].pos'),stored);
     await settings.webContents.executeJavaScript(`document.querySelector('#petMode').checked=true;document.querySelector('#connectedMode').checked=false;changeMode()`);await sleep(1200);
