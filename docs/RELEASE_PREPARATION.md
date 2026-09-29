@@ -1,6 +1,6 @@
 # GitHub 发布准备
 
-项目名为 **pet-with-you**，仓库为 [Refining-colors/pet-with-you](https://github.com/Refining-colors/pet-with-you)。源码、ZIP 下载和 Windows 自动检查已验证；当前安装包为 [0.1.0-alpha.7.1.1](https://github.com/Refining-colors/pet-with-you/releases/tag/v0.1.0-alpha.7.1.1)。安装包在干净 Windows 环境构建并完成安装/卸载验收，详见 [检查记录](RELEASE_CHECK.md)。
+项目名为 **pet-with-you**，仓库为 [Refining-colors/pet-with-you](https://github.com/Refining-colors/pet-with-you)。源码、ZIP 下载和 Windows 自动检查已验证；当前安装包为 [0.1.0-alpha.7.1.4](https://github.com/Refining-colors/pet-with-you/releases/tag/v0.1.0-alpha.7.1.4)。安装包在干净 Windows 环境构建并完成安装/卸载验收，详见 [检查记录](RELEASE_CHECK.md)。
 
 已建立独立 `pet-with-you` 源码目录，用于本机 Git 版本管理；日常软件运行于安装目录，历史源码和视频另行保留。开发预览使用独立配置，操作见 [源码工作区指南](WORKSPACE.md)。初始化和本机提交不会自动推送 GitHub。
 
@@ -19,13 +19,13 @@
 | 开发说明 / AI 配置入口 | [CONTRIBUTING](../CONTRIBUTING.md)、[AGENTS](../AGENTS.md)、[ARCHITECTURE](ARCHITECTURE.md) | 已准备 |
 | 反馈模板与基础检查 | .github/ISSUE_TEMPLATE、PR 模板、Windows 自动测试工作流 | 本机与云端验证通过，补充独立安装包发布工作流 |
 | 数据安全与更新记录 | [SECURITY](../SECURITY.md)、[CHANGELOG](../CHANGELOG.md) | 已准备 |
-| 预览安装包与校验值 | [PACKAGING](PACKAGING.md)、[RELEASE_CHECK](RELEASE_CHECK.md) | alpha.7.1.1 发布；签名待办 |
+| 预览安装包与校验值 | [PACKAGING](PACKAGING.md)、[RELEASE_CHECK](RELEASE_CHECK.md) | alpha.7.1.4 发布；签名待办 |
 
 维护者与仓库链接已填写；下载入口指向真实 Release。当前仍是预览版，不声称稳定版或提供虚构维护者邮箱。
 
 ## 发布前仍需决定
 
-- 小范围修复优先追加预览版修订号，例如 `0.1.0-alpha.7.1`，必要时可继续细分为 `0.1.0-alpha.7.1.1`；不因单项修复直接跳到下一个 alpha 大编号。保留标准的三段主版本号，细分放在 `alpha` 后，兼容 npm 和安装器版本解析。
+- 预览版编号固定为 `alpha` 后三段数字，小范围修复按 `0.1.0-alpha.7.1.4` → `0.1.0-alpha.7.1.5` → `0.1.0-alpha.7.1.6` 递增，不再追加新的小数点层级。打包发布时再同步版本号，开发中的修改记入“未发布”。
 - 维护者已确定为 Refining-colors，仓库地址已确定。
 - 新增代码已采用 MIT，保留上游 MIT 声明。代码 MIT 不覆盖素材的非商用限制。
 - 字体及其他第三方资源的分发授权：`assets/fonts/上首软糖体.ttf` 等随上游带来的资源没有纳入 EXE 安装包；若后续要分发，需要确认具体字体授权，上游总体声明不能替代字体权利人的授权。
@@ -33,7 +33,7 @@
 
 托盘保留“关于 pet-with-you”，点击直接打开本项目仓库，不再单列原作入口；维护者为 Refining-colors，原作信息保留在设置页折叠致谢与文档中。普通快捷方式名称为 `pet-with-u`，项目名称不变。历史数据目录和 Startup 入口保留旧名以兼容升级。
 
-alpha.7.1.1 已统一版本与最新程序内容。日常安装目录和本机构建测试分开，历史安装包仅作回溯，不应覆盖新版。
+alpha.7.1.4 已统一版本与最新程序内容。日常安装目录和本机构建测试分开，历史安装包仅作回溯，不应覆盖新版。
 
 ## 发布验收清单
 

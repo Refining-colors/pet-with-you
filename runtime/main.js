@@ -329,6 +329,7 @@ let pointerFallbackPaused = false;
  */
 const inputBusy = new Map();
 const bubbleRects = new Map();
+const spriteGeometry = new Map();
 
 /**
  * 桌面宠物列表（[{id,size}]）：宿主经 DSH_PET_PETS 透传（每只宠物一个窗口）。
@@ -352,12 +353,11 @@ function petsFromEnv() {
   return [{ id: 'main', size: 462, index: 0 }];
 }
 
-/** 窗口初始尺寸 = 宠物包围盒 + 四周外扩余量（4×0.5×size，与 renderer 的 WINDOW_MARGIN_RATIO 一致；
- *  renderer 首帧 set-bounds 会按真实配置精确覆盖，这里只是避免启动瞬间的尺寸跳变）。 */
-function petWindowSize(size) {
+/** Match the renderer's permanent menu reserve before showing the first frame. */
+function petWindowSize(size, scale) {
   const height = (size * 9) / 16;
   const bottomPad = (size * (9 / 16) * (360 - 330)) / 360;
-  const m = Math.round(size * 0.5);
+  const m = Math.round(450 * scale);
   return { width: Math.round(size) + m * 2, height: Math.round(height + bottomPad) + m * 2 };
 }
 
@@ -411,7 +411,7 @@ function createPetWindows() {
   const scale = petScale();
   for (const pet of pets) {
     // 初始窗口尺寸也要吃缩放补偿，否则启动瞬间会有一次可见的尺寸跳变
-    const { width, height } = petWindowSize(pet.size * scale);
+    const { width, height } = petWindowSize(pet.size * scale, scale);
     const win = new BrowserWindow({
       width,
       height,
@@ -482,7 +482,7 @@ function createPetWindows() {
       const ignoring = windowIgnore.get(win.id) !== false;
       const point=screen.getCursorScreenPoint(),r=bubbleRects.get(win.id);
       const overBubble=r&&point.x>=b.x+r.x&&point.x<=b.x+r.x+r.width&&point.y>=b.y+r.y&&point.y<=b.y+r.y+r.height;
-      const next = decideWindowIgnore(b, point, ignoring, inputBusy.get(win.id) === true||overBubble);
+      const next = decideWindowIgnore(b, point, ignoring, inputBusy.get(win.id) === true||overBubble, spriteGeometry.get(win.id));
       if (next !== ignoring) setWindowIgnore(win, next);
     }, POINTER_POLL_MS);
     win.on('closed', () => {
@@ -496,6 +496,7 @@ function createPetWindows() {
       windowIgnore.delete(win.id);
       inputBusy.delete(win.id);
       bubbleRects.delete(win.id);
+      spriteGeometry.delete(win.id);
     });
     win
       .loadFile(path.join(__dirname, 'index.html'), {
@@ -683,8 +684,11 @@ app.whenReady().then(() => {
       const bx = Number(bounds?.boxX);
       const by = Number(bounds?.boxY);
       const size = Number(bounds?.size);
-      if(Number.isFinite(size)&&size>0)positions.set(petId,{x:x+width/2,feet:y+(width-size)/2+size*9/16});
+      if(Number.isFinite(bounds?.centerX)&&Number.isFinite(bounds?.feetY))positions.set(petId,{x:bounds.centerX,feet:bounds.feetY});
       const bottomPad = Number(bounds?.bottomPad);
+      if(Number.isFinite(size)&&size>0&&Number.isFinite(bounds?.centerX)&&Number.isFinite(bounds?.feetY)&&Number.isFinite(bottomPad)){
+        spriteGeometry.set(win.id,{size,left:bounds.centerX-size/2-x,top:bounds.feetY-size*9/16-y,bottomPad});
+      }
       const vx = Number(bounds?.vx);
       const vy = Number(bounds?.vy);
       // 位置 + 尺寸 + 速度一并登记：set-bounds 是每次位置变化都会触发的全量上报

@@ -17,6 +17,8 @@ module.exports = {
   win: { target: [{ target: 'nsis', arch: ['x64'] }], icon: 'build/icon.ico', signAndEditExecutable: true },
   nsis: {
     oneClick: false, perMachine: false, allowElevation: false,
+    // Updates currently use the full installer; allow solid maximum compression.
+    differentialPackage: false,
     // The custom directory page shows the real branded destination before continuing.
     allowToChangeInstallationDirectory: false,
     createDesktopShortcut: false, createStartMenuShortcut: true,

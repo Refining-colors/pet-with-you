@@ -4,7 +4,7 @@
 
 一个运行在 Windows 桌面上的动画桌宠：可以随机玩耍、手动点播、聊天与碎碎念，也可以连接 Codex 桌面客户端，展示任务进度和账户额度。
 
-> `0.1.0-alpha.7.1.1` Windows 公开预览版：[下载安装程序](https://github.com/Refining-colors/pet-with-you/releases/tag/v0.1.0-alpha.7.1.1)。纯桌宠无需另装 Node.js、Git 或 Codex CLI。由 [Refining-colors](https://github.com/Refining-colors) 维护。项目代码采用 MIT，角色动画按原作条款说明。
+> `0.1.0-alpha.7.1.4` Windows 公开预览版：[下载安装程序](https://github.com/Refining-colors/pet-with-you/releases/tag/v0.1.0-alpha.7.1.4)。纯桌宠无需另装 Node.js、Git 或 Codex CLI。由 [Refining-colors](https://github.com/Refining-colors) 维护。项目代码采用 MIT，角色动画按原作条款说明。
 
 基于 [PC2005-cloud/dsh-pet](https://github.com/PC2005-cloud/dsh-pet) 改造与扩展，保留原作角色和 106 段动画。原作代码、素材与本项目适配工作的关系见 [来源与致谢](ATTRIBUTION.md)。
 
@@ -64,14 +64,14 @@
 - 普通设置修改后，关闭设置窗口自动保存；失败时保留窗口和未保存的内容。
 - 所有普通设置集中于 `settings.json`，设置底部可定位并分享；实际密钥单独在本机加密保存。
 - 基础设置底部可选择目录创建名为 `pet-with-u`、带角色图标的启动快捷方式，同名文件自动另加编号。
-- 首次正常打开设置时会询问是否创建快捷方式，可选择保存目录或跳过；选择会被记住，后台联动启动不弹出此提示。
+- 首次正常启动时会询问是否创建快捷方式，可选择保存目录或跳过；选择会被记住，后台联动启动不弹出此提示。
 - 提供错误日志、导出反馈、打开日志目录及清除日志功能。
 
 ## 快速开始
 
 ### 推荐：下载安装版
 
-1. 打开 [Releases 下载页](https://github.com/Refining-colors/pet-with-you/releases/tag/v0.1.0-alpha.7.1.1)，下载 **pet-with-you-0.1.0-alpha.7.1.1-x64-setup.exe**。
+1. 打开 [Releases 下载页](https://github.com/Refining-colors/pet-with-you/releases/tag/v0.1.0-alpha.7.1.4)，下载 **pet-with-you-0.1.0-alpha.7.1.4-x64-setup.exe**。
 2. 双击安装，选择目录和是否创建桌面快捷方式。
 3. 从桌面或开始菜单中的 **pet-with-u** 启动，默认纯桌宠；右键打开设置。
 

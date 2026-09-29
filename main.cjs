@@ -74,21 +74,21 @@ if(!app.requestSingleInstanceLock()){app.quit();}else{
     return require('./pet-shortcut.cjs').createPetShortcut({directory:selected.filePaths[0],root:__dirname,executable:process.execPath,packaged:app.isPackaged,development:developmentPreview,shell});
   }
   async function offerFirstRunShortcut(window){
-    if(developmentPreview||process.env.PET_TEST_DATA_DIR||shortcutPromptPending||window.isDestroyed())return;
+    if(developmentPreview||process.env.PET_TEST_DATA_DIR||shortcutPromptPending||window?.isDestroyed())return;
     shortcutPromptPending=true;
     try{
       const result=await require('./pet-shortcut.cjs').offerFirstRunShortcut({store:settingsStore,dialog,parent:window,createShortcut:createPetShortcutWithDialog});
-      if(result.ok&&!window.isDestroyed())await dialog.showMessageBox(window,{type:'info',title:'快捷方式已创建',message:'已创建 pet-with-u 快捷方式',detail:result.file,buttons:['确定']});
+      if(result.ok&&!window?.isDestroyed())await dialog.showMessageBox(window,{type:'info',title:'快捷方式已创建',message:'已创建 pet-with-u 快捷方式',detail:result.file,buttons:['确定']});
     }catch(error){
       service.diagnostics.record('settings',error,'settings-failed');
-      if(!window.isDestroyed())await dialog.showMessageBox(window,{type:'error',title:'快捷方式创建未完成',message:'请稍后重试，或从基础设置底部创建快捷方式。',detail:error.message,buttons:['确定']});
+      if(!window?.isDestroyed())await dialog.showMessageBox(window,{type:'error',title:'快捷方式创建未完成',message:'请稍后重试，或从基础设置底部创建快捷方式。',detail:error.message,buttons:['确定']});
     }finally{shortcutPromptPending=false;}
   }
   function openSettings(){
     if(settings&&!settings.isDestroyed()){settings.show();settings.focus();return;}
     const appIcon=path.join(__dirname,'build','icon.ico');
     settings=new BrowserWindow({width:940,height:760,title:'桌宠控制台',icon:appIcon,webPreferences:{contextIsolation:true,nodeIntegration:false,sandbox:true}});
-    if(process.platform==='win32')settings.setAppDetails({appId,appIconPath:appIcon,appIconIndex:0,relaunchDisplayName:PRODUCT_NAME,relaunchCommand:'"'+process.execPath+'" '+(app.isPackaged?'':'"'+__dirname+'" ')+'--settings'});
+    if(process.platform==='win32')settings.setAppDetails({appId,appIconPath:appIcon,appIconIndex:0,relaunchDisplayName:PRODUCT_NAME,relaunchCommand:'"'+process.execPath+'" '+(app.isPackaged?'':'"'+__dirname+'" ')+'--open-settings'});
     if(developmentPreview){settings.setTitle('桌宠控制台 · 开发预览');settings.on('page-title-updated',event=>event.preventDefault());}
     const window=settings;let closeApproved=false,closing=false;
     window.on('close',event=>{
@@ -119,8 +119,12 @@ if(!app.requestSingleInstanceLock()){app.quit();}else{
       const result=await dialog.showSaveDialog({title:'导出桌宠错误日志',defaultPath:path.join(app.getPath('documents'),'pet-with-you-errors-'+new Date().toISOString().replace(/[:.]/g,'-')+'.json'),filters:[{name:'错误日志',extensions:['json']}]});
       if(result.canceled||!result.filePath)return {canceled:true};
       await fs.promises.writeFile(result.filePath,content,'utf8');return {ok:true};
-    },onChange(config){
+    },async onChange(config,sizeChange){
     process.env.DSH_PET_PETS=JSON.stringify(Object.values(config).flatMap(c=>c.pets).filter(p=>['desktop','both'].includes(p.display)));
+    if(sizeChange){
+      if(settings&&!settings.isDestroyed())await settings.webContents.executeJavaScript(`window.PetSettingsSizeUpdate?.(${JSON.stringify(sizeChange)})`).catch(()=>{});
+      return;
+    }
     if(runtimeStarted)require('./runtime/main.js').recreate();
   },onPreferences(next,rebuild){
     syncLifecycle(next);
@@ -151,14 +155,18 @@ if(!app.requestSingleInstanceLock()){app.quit();}else{
       setTrayVisible(trayState);
       if(process.env.PET_DEMO_RECORD==='1')require('./scripts/record-demo.cjs')({service});
       if(process.env.PET_INTEGRATION_VERIFY==='1')require('./test/desktop-verify.cjs')({service,openSettings,getSettings:()=>settings,largeTrayMenu,getTray:()=>tray});
-      if(process.argv.includes('--settings')||(app.isPackaged&&!process.argv.includes('--background')))openSettings();
+      // Old generated shortcuts used --settings. Treat it as normal pet startup;
+      // only the explicit new entry (or a development preview) opens the console.
+      if(process.argv.includes('--open-settings')||(developmentPreview&&process.argv.includes('--settings')))openSettings();
+      else if(!process.argv.includes('--background')&&!process.argv.includes('--connect-only'))offerFirstRunShortcut().catch(console.error);
       if(process.argv.includes('--connect')||process.argv.includes('--connect-only'))prepareConnection().catch(console.error);
 
     });
     app.on('second-instance',(_event,args)=>{
       if(!args.includes('--connect-only'))startPets();
       if(args.includes('--connect')||args.includes('--connect-only'))prepareConnection().catch(console.error);
-      if(!args.includes('--background'))openSettings();
+      if(args.includes('--open-settings')||(developmentPreview&&args.includes('--settings')))openSettings();
+      else if(!args.includes('--background'))revealPet();
     });
     app.on('before-quit',event=>{
       if(!quitApproved&&settings&&!settings.isDestroyed()){

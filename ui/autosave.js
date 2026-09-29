@@ -16,7 +16,7 @@
       if(id==='notify')main.notificationsEnabled=input.checked;
       if(id==='interval'||id==='apiWhisperInterval')main.eventsRefreshSec.whisper=Number(input.value);
       dirty.delete('advanced');mark('config');
-    }else if(id==='advanced'){dirty.delete('config');mark('advanced');}
+    }else if(id==='advanced'){menuSizeUpdates.clear();dirty.delete('config');mark('advanced');}
     else if(input.name==='replyMode')mark('pref:replyMode');
     else if(id==='apiWhisperProbability')mark('pref:autoWhisperProbability');
     else if(preferenceIds.includes(id))mark('pref:'+id);
@@ -84,7 +84,8 @@
           value.eventsRefreshSec.whisper=number('interval',60,86400);
           value.physics.petCollision=$('#collision').checked;value.notificationsEnabled=$('#notify').checked;
         }
-        plan.push({keys:['config','advanced'],run:async()=>{const saved=await api('/config','PUT',value);main=saved.main;}});
+        for(const pet of value.pets||[])if(menuSizeUpdates.has(pet.id))pet.size=menuSizeUpdates.get(pet.id);
+        plan.push({keys:['config','advanced'],run:async()=>{const saved=await api('/config','PUT',value);main=saved.main;menuSizeUpdates.clear();}});
       }
       if(dirty.has('api')){
         const value={profileName:$('#apiProfileName').value,baseUrl:$('#apiBaseUrl').value.trim(),model:$('#apiModel').value.trim(),apiKey:enteredSecret($('#apiKey'))};

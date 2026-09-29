@@ -758,7 +758,15 @@ const MENU_CSS = [
 	"gap:14px;padding:5px 12px;border-radius:6px;white-space:nowrap;cursor:default}",
 	".dsh-pet-menu-item:hover{background:rgba(43,99,255,.14)}",
 	".dsh-pet-menu-item>span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis}",
-	".dsh-pet-menu-arrow{color:#9aa0a6;font-size:12px;flex:none}"
+	".dsh-pet-menu-arrow{color:#9aa0a6;font-size:12px;flex:none}",
+	".dsh-pet-menu-size{width:224px;padding:8px 10px;cursor:default}",
+	".dsh-pet-menu-size label{display:flex;align-items:center;gap:6px;margin-bottom:8px}",
+	".dsh-pet-menu-size label span{flex:1}.dsh-pet-menu-size input{font:inherit;accent-color:#3799d0}",
+	".dsh-pet-menu-size input[type=number]{width:65px;padding:3px 5px;border:1px solid #cbd7df;border-radius:5px;color:inherit;background:#fff}",
+	".dsh-pet-menu-size input[type=range]{display:block;width:100%;margin:0;cursor:default}",
+	".dsh-pet-menu-size button{margin-top:9px;padding:4px 8px;border:1px solid #bfd2df;border-radius:5px;background:#edf5fa;color:#285b7a;font:inherit;cursor:default}",
+	".dsh-pet-menu-size-status{font-size:11px;color:#657987;min-height:17px;margin-top:6px;white-space:normal}",
+	".dsh-pet-menu-size-status[role=alert]{color:#b43c35}"
 ].join("");
 function isBranchNode(n) {
 	return "children" in n && Array.isArray(n.children);
@@ -777,6 +785,8 @@ function mountContextMenu(opts) {
 	root.style.top = "0px";
 	root.addEventListener("contextmenu", (e) => e.preventDefault());
 	let closed = false;
+	let controlDragging = false;
+	const commitControls = [];
 	/** 每个面板当前展开的子面板（无 = 未展开）；hideChain 会沿链清除 */
 	const openChild = new Map();
 	/** 指针整体离开菜单树的兜底关闭定时器（root mouseover 重新进入即取消） */
@@ -813,6 +823,39 @@ function mountContextMenu(opts) {
 		if (clamp) panel.style.maxHeight = Math.min(460, Math.max(120, c.h - 16)) + "px";
 		root.appendChild(panel);
 		for (const node of nodes) {
+			if(node.type === 'size'){
+				const control=document.createElement('div');control.className='dsh-pet-menu-size';
+				const label=document.createElement('label'),caption=document.createElement('span');caption.textContent=node.label;
+				const numeric=document.createElement('input');numeric.type='number';
+				const slider=document.createElement('input');slider.type='range';
+				for(const input of [numeric,slider]){input.min=180;input.max=900;input.step=1;input.value=node.value;input.setAttribute('aria-label',input===slider?'桌宠尺寸滑条':'桌宠尺寸数值');}
+				label.append(caption,numeric,document.createTextNode('px'));
+				const status=document.createElement('div');status.className='dsh-pet-menu-size-status';status.textContent='拖动预览，松开自动保存';status.setAttribute('role','status');
+				control.append(label,slider,status);panel.appendChild(control);
+				let value=node.value,requested=value,revision=0;
+				const preview=n=>{value=Math.round(Math.max(180,Math.min(900,n)));numeric.value=slider.value=value;node.onInput(value);};
+				const commit=()=>{
+					if(numeric.value.trim()&&Number.isFinite(Number(numeric.value)))preview(Number(numeric.value));else numeric.value=value;
+					if(value===requested)return;
+					requested=value;const ticket=++revision,committed=value;status.textContent='正在保存…';status.setAttribute('role','status');
+					Promise.resolve().then(()=>node.onCommit(committed)).then(()=>{if(ticket===revision)status.textContent='已保存';}).catch(()=>{
+						if(ticket!==revision)return;
+						requested=value=node.getValue();numeric.value=slider.value=value;status.textContent='保存失败，已恢复上次尺寸，请重试';status.setAttribute('role','alert');
+					});
+				};
+				commitControls.push(commit);
+				const reset=document.createElement('button');reset.type='button';reset.textContent='恢复初始大小';reset.title='恢复为 '+node.initialSize+' px';
+				reset.addEventListener('click',e=>{e.stopPropagation();preview(node.initialSize);commit();});
+				control.insertBefore(reset,status);
+				slider.addEventListener('input',()=>preview(Number(slider.value)));
+				numeric.addEventListener('input',()=>{const n=Number(numeric.value);if(numeric.value&&n>=180&&n<=900)preview(n);});
+				for(const input of [slider,numeric]){
+					input.addEventListener('change',commit);input.addEventListener('blur',commit);
+					input.addEventListener('keydown',e=>{if(e.key==='Enter'){commit();input.blur();}if(e.key!=='Escape')e.stopPropagation();});
+				}
+				control.addEventListener('pointerdown',e=>{controlDragging=true;e.target.setPointerCapture?.(e.pointerId);});
+				continue;
+			}
 			const item = document.createElement("div");
 			item.className = "dsh-pet-menu-item";
 			if (isBranchNode(node)) {
@@ -859,6 +902,7 @@ function mountContextMenu(opts) {
 		if (leaveTimer !== null) window.clearTimeout(leaveTimer);
 		leaveTimer = window.setTimeout(() => {
 			leaveTimer = null;
+			if(controlDragging||root.contains(document.activeElement))return;
 			close();
 		}, 200);
 	});
@@ -879,18 +923,27 @@ function mountContextMenu(opts) {
 	};
 	document.addEventListener("mousedown", onDocPointerDown, true);
 	document.addEventListener("keydown", onDocKeyDown, true);
+	const releaseControl=()=>{if(controlDragging){controlDragging=false;for(const commit of commitControls)commit();}};
+	window.addEventListener('pointerup',releaseControl);
+	window.addEventListener('pointercancel',releaseControl);
 	const close = () => {
 		if (closed) return;
+		for(const commit of commitControls)commit();
 		closed = true;
 		if (leaveTimer !== null) window.clearTimeout(leaveTimer);
 		leaveTimer = null;
 		document.removeEventListener("mousedown", onDocPointerDown, true);
 		document.removeEventListener("keydown", onDocKeyDown, true);
+		window.removeEventListener('pointerup',releaseControl);
+		window.removeEventListener('pointercancel',releaseControl);
+		window.removeEventListener('blur',close);
 		root.remove();
 		if (onClose) onClose();
 	};
+	window.addEventListener('blur',close);
 	return {
 		el: root,
+		editing:()=>controlDragging||root.contains(document.activeElement),
 		close
 	};
 }

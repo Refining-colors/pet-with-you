@@ -9,7 +9,14 @@ module.exports=async function verify({service,openSettings,getSettings,largeTray
   const request=async(route,body)=>{const r=await fetch(service.base+route,{method:body?'PUT':'GET',body:body?JSON.stringify(body):undefined});return r.json();};
   try{
     service.client.start=async()=>{throw new Error('Codex must not start during independent UI test');};
-    openSettings();const settings=getSettings();settings.webContents.on('console-message',(_event,_level,message)=>{if(/Uncaught/.test(message))errors.push(message);});
+    await sleep(700);
+    assert.ok(!getSettings(),'normal startup must not open Settings');
+    for(const args of [[],['--settings']]){
+      app.emit('second-instance',{},[process.execPath,...args]);await sleep(100);
+      assert.ok(!getSettings(),'normal and legacy shortcuts must not open Settings on a second launch');
+    }
+    app.emit('second-instance',{},[process.execPath,'--open-settings']);
+    const settings=getSettings();assert.ok(settings,'explicit settings entry remains available');settings.webContents.on('console-message',(_event,_level,message)=>{if(/Uncaught/.test(message))errors.push(message);});
     await sleep(3000);
     const electronShell=require('electron').shell,originalOpen=electronShell.openExternal,opened=[];
     try{
@@ -53,6 +60,8 @@ module.exports=async function verify({service,openSettings,getSettings,largeTray
     assert.equal(await pet().webContents.executeJavaScript('window.__dshPetDebug.configOk'),true);
     const config=await request('/config');config.main.animationWeights.move=0;
     await request('/config',config.main);await sleep(600);
+    await require('./menu-frame-verify.cjs')(pet());
+    await require('./pet-size-verify.cjs')({pet:pet(),settings,service});
     const drag=await pet().webContents.executeJavaScript(`(async()=>{const s=sprites[0];s.stopMove();s.stopThrow();s.sendBounds(400,300);s.onPointerDown({button:0,pointerId:17,screenX:600,screenY:500,clientX:100,clientY:100});const before={...s.pos};s.onPointerMove({screenX:720,screenY:560});await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));const result={dx:s.pos.x-before.x,dy:s.pos.y-before.y,wantX:toLocal(120),wantY:toLocal(60),dragAnimation:s.animations.drag.includes(s.anim)};s.dragTrail=[];s.onPointerUp({screenX:720,screenY:560});s.stopThrow();s.stopMove();return result;})()`);
     assert.ok(Math.abs(drag.dx-drag.wantX)<1&&Math.abs(drag.dy-drag.wantY)<1);assert.equal(drag.dragAnimation,true);
     await settings.webContents.executeJavaScript(`(async()=>{document.querySelector('#proxyEndpoint').value='https://quota.example.test/balance';document.querySelector('#credential').value='manual';document.querySelector('#valuePath').value='data.balance';document.querySelector('#proxyKey').value='preview-private-key';await document.querySelector('#saveProxy').onclick();})()`);
@@ -80,6 +89,8 @@ module.exports=async function verify({service,openSettings,getSettings,largeTray
     await settings.webContents.executeJavaScript(`(async()=>{await document.querySelector('#deleteApiProfile').onclick();await document.querySelector('#clearApi').onclick();})()`);
     assert.equal((await request('/api/profiles')).length,0);
     assert.equal((await request('/api/settings')).baseUrl,'');
+    // Keep autonomous animations from moving the subject during the mode/position checks.
+    await request('/preferences',{disableRoaming:true});
     await sleep(900);
     const stored=await pet().webContents.executeJavaScript(`(()=>{const s=sprites[0];s.stopMove();s.stopThrow();s.sendBounds(430,310);return s.pos;})()`);
     await sleep(80);

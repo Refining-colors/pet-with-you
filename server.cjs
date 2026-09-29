@@ -214,6 +214,24 @@ async function startServer({dataDir,defaultMode='pet',monitorSessions=false,sess
         if(!connected()&&source!=='proxy')return json({ok:false,provider:'Codex',message:'当前为纯桌宠模式，请先切换到“连接 GPT 客户端”。'});
         return json(source==='proxy'?await proxyBalance():await balance());
       }
+      if(route==='/config/size'&&req.method==='PUT'){
+        const {id,size}=await body();
+        if(typeof id!=='string'||!Number.isInteger(size)||size<180||size>900)return json({error:'尺寸须为 180–900 的整数'},400);
+        const found=findPetInstance(config,id);
+        if(!found)return json({error:'未找到这只桌宠'},404);
+        const key=found.entry==='main'?'pet':'petEntries';
+        const existing=settingsStore.get(key,{}),next=structuredClone(existing);
+        const entry=found.entry==='main'?next:(next[found.entry]??={});
+        // Materialize inherited pets only when needed; preserve all other entry fields.
+        entry.pets=structuredClone(entry.pets||found.conf.pets);
+        const target=entry.pets.find(p=>p.id===id);
+        if(!target)return json({error:'桌宠配置已变化，请重新打开菜单'},409);
+        target.size=size;
+        settingsStore.set(key,next);
+        try{config=readAllConfig(paths);}catch(error){settingsStore.set(key,existing);throw error;}
+        await onChange(config,{id,size});
+        return json({id,size});
+      }
       if(route==='/config'){
         if(req.method==='PUT'){
           const raw=await body();
@@ -223,7 +241,7 @@ async function startServer({dataDir,defaultMode='pet',monitorSessions=false,sess
           for(const key of ['physics','animationWeights','animations','eventsRefreshSec','whisperPrompt','chatMemoryRounds','memes'])if(raw[key]!==undefined)next[key]=raw[key];
           settingsStore.set('pet',next);
           try{config=readAllConfig(paths);}catch(e){settingsStore.set('pet',existing);throw e;}
-          onChange(config);return json(config);
+          await onChange(config);return json(config);
         }
         return json(config);
       }

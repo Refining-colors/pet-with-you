@@ -25,6 +25,7 @@ See docs/PROJECT_HISTORY.md for development context and settled decisions. Updat
 
 ## Packaging and assets
 
+- Keep the preview suffix at three numeric components: alpha.7.1.1 -> alpha.7.1.2 -> alpha.7.1.3. Never append another dot-separated level for a small fix.
 - Keep source and docs synchronized; defer installer rebuilding and installation until pre-upload preparation or an explicit request. Shortcut labels use pet-with-u; the project, executable and repository remain pet-with-you.
 - Launch paths must be derived from the checkout, environment or OS APIs, never a developer's username or drive.
 - Root launchers are public entry points. Keep root services, runtime/, ui/, scripts/, test/, docs/ responsibilities clear.

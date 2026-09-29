@@ -1,0 +1,51 @@
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
+const {startServer}=require('../server.cjs');
+
+test('size-only saves preserve other pets and settings, validate input and survive restart',async t=>{
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'pet-size-'));
+  let service,changes=[];
+  t.after(()=>{service?.close();fs.rmSync(dir,{recursive:true,force:true});});
+  service=await startServer({dataDir:dir,onChange:(config,size)=>changes.push(size)});
+  const request=async(route,body)=>fetch(service.base+route,body?{method:'PUT',body:JSON.stringify(body)}:undefined);
+  const config=await (await request('/config')).json(),first=config.main.pets[0];
+  config.main.pets.push({...structuredClone(first),id:'second',name:'Second pet',size:250});
+  config.main.whisperPrompt='fixture custom prompt';
+  await request('/config',config.main);changes=[];
+  const before=await (await request('/config')).json();
+  for(const size of [179,901,450.5,'450',null])assert.equal((await request('/config/size',{id:first.id,size})).status,400);
+  assert.equal((await request('/config/size',{id:'missing',size:450})).status,404);
+  assert.deepEqual(changes,[]);
+  for(const size of [180,900,527])assert.equal((await request('/config/size',{id:first.id,size})).status,200);
+  assert.deepEqual(changes,[180,900,527].map(size=>({id:first.id,size})));
+  const after=await (await request('/config')).json();
+  before.main.pets[0].size=527;
+  assert.deepEqual(after,before);
+  service.close();service=await startServer({dataDir:dir});
+  assert.equal((await (await request('/config')).json()).main.pets[0].size,527);
+  const shared={};require('node:vm').runInNewContext(fs.readFileSync(path.join(__dirname,'../runtime/shared-core.js'),'utf8'),shared);
+  assert.equal(shared.PetShared.PET_REF_WIDTH,first.size,'reset baseline matches the shipped initial size');
+  await request('/config/size',{id:first.id,size:shared.PetShared.PET_REF_WIDTH});
+  service.close();service=await startServer({dataDir:dir});
+  assert.equal((await (await request('/config')).json()).main.pets[0].size,first.size,'explicit reset also persists after restart');
+});
+
+test('size-only saves support extra pet entries without modifying main or entry metadata',async t=>{
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'pet-size-extra-'));
+  let service;
+  t.after(()=>{service?.close();fs.rmSync(dir,{recursive:true,force:true});});
+  service=await startServer({dataDir:dir});
+  const base=await fetch(service.base+'/config').then(r=>r.json());
+  service.close();
+  const {SettingsStore}=require('../settings-store.cjs');
+  const store=new SettingsStore(dir);
+  store.set('petEntries',{companion:{pets:[{...base.main.pets[0],id:'extra',size:300}],whisperPrompt:'keep extra prompt'}});
+  service=await startServer({dataDir:dir});
+  const before=await fetch(service.base+'/config').then(r=>r.json());
+  const res=await fetch(service.base+'/config/size',{method:'PUT',body:JSON.stringify({id:'extra',size:600})});
+  assert.equal(res.status,200);
+  const after=await fetch(service.base+'/config').then(r=>r.json());
+  before.companion.pets[0].size=600;
+  assert.deepEqual(after,before);
+});

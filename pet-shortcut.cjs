@@ -6,7 +6,7 @@ function createPetShortcut({ directory, root = __dirname, executable = process.e
   const icon = packaged ? executable : path.join(root, 'build', 'icon.ico');
   const target = packaged ? executable : path.join(process.env.WINDIR, 'System32', 'wscript.exe');
   const launcher = path.join(root, 'launcher.vbs');
-  let args = '--settings';
+  let args = '';
   if (!packaged) {
     nodeExecutable ||= require('./node-runtime.cjs').locateNode();
     if (!fs.existsSync(nodeExecutable) || !fs.existsSync(launcher)) throw new Error('启动文件缺失，请先修复源码安装。');

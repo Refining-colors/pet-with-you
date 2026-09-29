@@ -22,12 +22,23 @@ const STAGE_W = 640;
 
 /**
  * 窗口矩形 → 宠物身体命中区的屏幕矩形（DIP）。
+ * 新窗口显式提供角色尺寸、相对偏移及脚底垫高；透明余量不再代表角色大小。
+ * 未提供 geometry 时保留旧窗口的对称余量换算：
  * 窗口 = 宠物包围盒 + 四周各半只宠物的余量（renderer 的 WINDOW_MARGIN_RATIO = 0.5）：
  * 横向 `margin = round(width / 4)`、stageW = width − 2×margin；纵向从窗口顶边往下 margin 才是画布顶边
  * （底部还多一个 bottomPad，命中区计算用不到）。判定公式与渲染端 sprite.js 的命中判定同源，
  * 故两条通道的判定区域严格一致（报告者补丁里用 width/4 内缩会覆盖整个画布，比身体大一倍多）。
  */
-function spriteHitRect(bounds) {
+function spriteHitRect(bounds, geometry) {
+  if(geometry){
+    const {size,left,top,bottomPad}=geometry;
+    return {
+      left:bounds.x+left+HIT_BOX.x0/STAGE_W*size,
+      top:bounds.y+top+bottomPad+HIT_BOX.y0/STAGE_W*size,
+      right:bounds.x+left+HIT_BOX.x1/STAGE_W*size,
+      bottom:bounds.y+top+bottomPad+HIT_BOX.y1/STAGE_W*size,
+    };
+  }
   const margin = Math.round(bounds.width / 4);
   const stageW = bounds.width - margin * 2;
   const stageH = (stageW * CANVAS_H) / STAGE_W;
@@ -69,7 +80,7 @@ const POINTER_POLL_MS = 60;
  * @param {boolean} busy 渲染端是否正在用这个窗口的鼠标输入（拖拽中/菜单开/弹窗开，见 inputBusy）
  * @returns {boolean} 新的穿透状态
  */
-function decideWindowIgnore(bounds, point, ignoring, busy) {
+function decideWindowIgnore(bounds, point, ignoring, busy, geometry) {
   if (busy) return false; // 渲染端正拿着输入：绝不翻回穿透（翻了就断它的输入链）
   const inWindow =
     point.x >= bounds.x &&
@@ -77,10 +88,10 @@ function decideWindowIgnore(bounds, point, ignoring, busy) {
     point.y >= bounds.y &&
     point.y < bounds.y + bounds.height;
   if (!inWindow) return true; // 窗外：恢复穿透
-  const r = spriteHitRect(bounds);
+  const r = spriteHitRect(bounds, geometry);
   const inSprite = point.x >= r.left && point.x <= r.right && point.y >= r.top && point.y <= r.bottom;
   if (inSprite) return false; // 宠物身上：可交互
-  return ignoring; // 窗口余量区：保持（菜单/弹窗可点）
+  return geometry ? true : ignoring; // Explicit geometry + busy covers menus/bubbles; transparent margins pass through.
 }
 
 module.exports = { HIT_BOX, CANVAS_H, STAGE_W, POINTER_POLL_MS, spriteHitRect, decideWindowIgnore };

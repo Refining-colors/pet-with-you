@@ -1,5 +1,6 @@
 const base=location.pathname.replace(/\/settings\/?$/,'');
 let main;
+const menuSizeUpdates=new Map();
 const settingsLoads=[];document.body.inert=true;
 let currentMode='pet';
 let currentTab='basic';
@@ -37,11 +38,11 @@ function render(){
     const row=document.createElement('div');row.className='pet';
     const name=inputLabel(row,'名字','text',p.name,v=>p.name=v);name.closest('label').className='pet-name';
     const remove=text('button','移除');remove.disabled=main.pets.length===1;remove.onclick=()=>{main.pets.splice(index,1);render();};row.append(remove);
-    const size=document.createElement('div');size.className='pet-size';
+    const size=document.createElement('div');size.className='pet-size';size.dataset.petId=p.id;
     const title=text('label','尺寸');title.htmlFor='pet-size-'+index;
     const slider=document.createElement('input');slider.type='range';slider.min=180;slider.max=900;slider.step=1;slider.value=p.size;slider.id='pet-size-'+index;slider.setAttribute('aria-label',p.name+'尺寸滑条');
     const numeric=document.createElement('input');numeric.type='number';numeric.min=180;numeric.max=900;numeric.step=1;numeric.value=p.size;numeric.setAttribute('aria-label',p.name+'尺寸数值');
-    const sync=value=>{p.size=Math.round(Math.max(180,Math.min(900,Number(value)||180)));slider.value=numeric.value=p.size;$('#advanced').value=JSON.stringify(main,null,2);};
+    const sync=value=>{menuSizeUpdates.delete(p.id);p.size=Math.round(Math.max(180,Math.min(900,Number(value)||180)));slider.value=numeric.value=p.size;$('#advanced').value=JSON.stringify(main,null,2);};
     slider.oninput=()=>sync(slider.value);numeric.oninput=()=>{const n=Number(numeric.value);if(numeric.value&&n>=180&&n<=900)sync(n);};numeric.onchange=()=>sync(numeric.value);
     size.append(title,slider,numeric,text('span','px'));row.append(size);
     const options=document.createElement('div');options.className='pet-options';
@@ -66,6 +67,14 @@ async function status(){try{
 }catch{$('#status').textContent='桌宠服务已关闭';}}
 
 settingsLoads.push(fetch(base+'/config').then(r=>r.json()).then(j=>{main=j.main;render();status();}).catch(e=>$('#status').textContent=e.message));
+window.PetSettingsSizeUpdate=async({id,size})=>{
+  await Promise.allSettled(settingsLoads);
+  const pet=main?.pets.find(p=>p.id===id);if(!pet)return;
+  pet.size=size;menuSizeUpdates.set(id,size);
+  // Update only size controls. Re-rendering would discard unrelated unsaved form fields.
+  for(const row of document.querySelectorAll('.pet-size'))if(row.dataset.petId===id)for(const input of row.querySelectorAll('input'))input.value=size;
+  try{const draft=JSON.parse($('#advanced').value),p=draft.pets?.find(p=>p.id===id);if(p){p.size=size;$('#advanced').value=JSON.stringify(draft,null,2);}}catch{}
+};
 setInterval(status,3000);
 
 async function api(route,method='GET',body){const r=await fetch(base+route,{method,headers:body?{'Content-Type':'application/json'}:undefined,body:body?JSON.stringify(body):undefined});const j=await r.json();if(!r.ok)throw new Error(j.message||j.error||'请求失败');return j;}

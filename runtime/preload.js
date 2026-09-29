@@ -22,8 +22,8 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('petBridge', {
   copyText(text){return ipcRenderer.invoke('pet:copy-text',text);},
   setBubbleRect(rect){ipcRenderer.send('pet:bubble-rect',rect);},
-  setBounds(x, y, width, height, boxX, boxY, size, bottomPad, vx, vy) {
-    ipcRenderer.send('pet:set-bounds', { x, y, width, height, boxX, boxY, size, bottomPad, vx, vy });
+  setBounds(x, y, width, height, boxX, boxY, size, bottomPad, vx, vy, centerX, feetY) {
+    ipcRenderer.send('pet:set-bounds', { x, y, width, height, boxX, boxY, size, bottomPad, vx, vy, centerX, feetY });
   },
   setInteractive(interactive) {
     ipcRenderer.send('pet:set-interactive', !!interactive);

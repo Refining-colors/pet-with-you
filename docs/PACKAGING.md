@@ -1,6 +1,6 @@
 # 预览版打包、安装与更新准备
 
-当前版本为 **0.1.0-alpha.7.1.1**，提供 Windows x64 公开预览安装包。代码采用 MIT，安装包不附带第三方字体。原作代码许可和角色素材限制仍见 [来源与致谢](../ATTRIBUTION.md)。[下载页面](https://github.com/Refining-colors/pet-with-you/releases/tag/v0.1.0-alpha.7.1.1)提供 EXE、校验文件和简明安装说明。
+当前版本为 **0.1.0-alpha.7.1.4**，提供 Windows x64 公开预览安装包。代码采用 MIT，安装包不附带第三方字体。原作代码许可和角色素材限制仍见 [来源与致谢](../ATTRIBUTION.md)。[下载页面](https://github.com/Refining-colors/pet-with-you/releases/tag/v0.1.0-alpha.7.1.4)提供 EXE、校验文件和简明安装说明。
 
 `0.1.0-alpha.7.1.1` 修正目录页即时预览、欢迎／完成页角色图、高分屏字体和快捷方式图标刷新。
 
@@ -17,7 +17,7 @@
 
 ## 本机构建
 
-当前发布统一使用 `0.1.0-alpha.7.1.1` 源码、版本号和构建配置。旧安装包保留在历史 Release 供回溯，日常安装应使用最新下载页。以后打包前仍需同步版本号、锁文件、更新记录，并重新验证安装及快捷方式。
+当前构建为 `0.1.0-alpha.7.1.4`，包含右键尺寸调整、恢复初始大小、只显示桌宠的快捷方式启动、菜单残影修复和安装包压缩优化。公开安装包由版本标签在 GitHub 构建并验收；本机构建用于日常测试，二者分别计算校验值。以后打包前仍需同步版本号、锁文件、更新记录，并重新验证安装及快捷方式。
 
 使用 Windows、Node.js 22.12+，在项目目录执行：
 
@@ -30,7 +30,7 @@ npm run audit:source
 npm run dist:win
 ```
 
-构建输出为 `dist/pet-with-you-0.1.0-alpha.7.1.1-x64-setup.exe`，另有 `dist/win-unpacked/` 便于检查。版本来自 `package.json` 与锁文件，后续修改必须同步。构建命令明确使用 `--publish never`，不会自行上传 GitHub。
+构建输出为 `dist/pet-with-you-0.1.0-alpha.7.1.4-x64-setup.exe`，另有 `dist/win-unpacked/` 便于检查。版本来自 `package.json` 与锁文件，后续修改必须同步。构建命令明确使用 `--publish never`，不会自行上传 GitHub。
 
 公开发布使用 **Build Windows release** 工作流：检出指定版本标签，运行源码检查、依赖审计、打包内容审计，并在干净 Windows runner 上真实安装/卸载两次，验证桌面快捷方式两种选择、开始菜单图标、无外部 Node.js 启动与用户数据保留。全部通过后生成带 EXE、SHA-256 和安装说明的预发布草稿；维护者核对后发布。已公开 Release 不自动覆盖。
 
@@ -59,6 +59,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-installer.ps1
 无需先卸载旧版。安装器沿用已登记的安装位置；旧版自定义目录即使没有标准名称，也不会因新目录规则被迁到子目录。新安装则规范化到 `pet-with-you` 子目录。自动验收包含不传安装目录时读取旧位置、保留 Hooks、快捷方式与测试数据；在干净 Windows 账户中，可给 `scripts/verify-installer.ps1` 传入 `-PreviousInstaller <旧安装包路径>` 做跨版本检查。
 
 ## 安装包体积
+
+当前采用 `nsis.differentialPackage: false`，让 `compression: 'maximum'` 对完整安装包生效。打包器默认的差分模式会强制非固实压缩、小字典和普通压缩级别，但本项目尚无差分下载更新器。此调整只减少下载包体积，不减少安装后的文件或降低运行质量；覆盖升级仍通过完整 EXE 完成。未来接入差分更新时需重新评估并测试该配置。
 
 安装版保留完整 Electron 运行环境、所有语言资源、106 段原始 WebM、角色图片和许可文件。打包审计逐项比较原始与安装版动画的 SHA-256，防止遗漏或转码降质。使用更高的无损压缩，排除仅供仓库介绍使用的 `docs/images/` 截图和 GIF 图鉴；完整配图仍可在 GitHub 手册中查看，文字手册仍随包提供。不会要求用户另装运行环境或启动后再下载动画。
 

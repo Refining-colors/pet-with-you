@@ -15,30 +15,12 @@ class PetSprite {
     // pet.size 即 CSS 像素基准，**不再手工乘 CONFIG.scale**——固定 px UI（菜单/积分/聊天）
     // 随同一缩放自动恢复 DIP 观感；跨进程交换（bounds/几何/碰撞）由 constants.js 的
     // toScreen/toLocal 收口换算，这里与 shared 组件一样零乘除。
-    this.size = pet.size;
-    this.height = (this.size * 9) / 16;
-    this.halfW = this.size / 2;
-    this.halfH = this.height / 2;
-    this.bottomPad = (this.size * (9 / 16) * (S.CANVAS_H - S.FEET_Y)) / S.CANVAS_H;
-    // 窗口高 = 舞台高 + 脚底垫高（stage 被 translateY(bottomPad) 下移的余量，防底部被窗口裁剪）
-    this.winH = this.height + this.bottomPad;
-    // 窗口内【可交互区域】= 身体命中区（像素，窗口坐标）。浏览器 overlay 只有 .dsh-pet-hit 是
-    // pointer-events:auto（root/stage/气泡全 none）——桌面严格对齐：命中区外含透明像素一律穿透到下层应用。
-    // HIT_BOX 是 640×360 舞台坐标：x 按窗口宽缩放；y 除舞台高外还要加 bottomPad（舞台被下移）。
-    this.hitRect = {
-      x: (S.HIT_BOX.x0 / 640) * this.size,
-      y: this.bottomPad + (S.HIT_BOX.y0 / 360) * this.height,
-      w: ((S.HIT_BOX.x1 - S.HIT_BOX.x0) / 640) * this.size,
-      h: ((S.HIT_BOX.y1 - S.HIT_BOX.y0) / 360) * this.height,
-    };
+    this.measureSize(pet.size);
     window.__dshPetDebug.hitRect = this.hitRect;
-    // 左右透明边余量（视频盒内宠物身体居中）：让边界按"身体"贴边——宠物能走到屏幕边缘，
-    // 但身体永不越界（漫游/拖拽都不会弄丢宠物）。与浏览器 overlay 的 sideAllow 同一套语义。
-    this.sideAllow = (S.HIT_BOX.x0 / 640) * this.size;
     window.__dshPetDebug.sideAllow = this.sideAllow;
-    // 窗口四周外扩（= WINDOW_MARGIN_RATIO×宠物尺寸）：sprite 钉在 (margin.l, margin.t)，
-    // 窗口 = sprite + 四边余量——气泡/未来弹窗显示在余量里；余量透明且点击穿透
-    const m = this.size * WINDOW_MARGIN_RATIO;
+    // Reserve menu/resize space before the first visible frame. Moving the painted
+    // video and its native transparent window separately causes a one-frame ghost.
+    const m = 900 * WINDOW_MARGIN_RATIO;
     this.margin = { t: m, r: m, b: m, l: m };
     window.__dshPetDebug.winMargin = this.margin;
     // 宠物包围盒左上角在【工作区】坐标系里的位置（本窗口的位置 = 宠物的位置）
@@ -184,6 +166,7 @@ class PetSprite {
     window.addEventListener(
       'mouseleave',
       () => {
+        if(this.menuEditing?.())return;
         // 光标离开窗口：菜单若开着立刻收起（菜单是窗口内 DOM，离开即不可达），再恢复穿透；
         // 对话弹窗开着则不恢复——弹窗是窗口内 DOM，鼠标还要回来点输入框（与 menuOpen 同守卫）
         this.closeMenu();
@@ -253,7 +236,7 @@ class PetSprite {
   // 主进程侧（bounds/去重/碰撞 broker）完全不用改。
   sendBounds(px, py) {
     const snapped=this.snapPosition(px,py);px=snapped.x;py=snapped.y;
-    this.pos = { x: Math.round(px), y: Math.round(py) };
+    this.pos = this.menuFrame ? {x:px,y:py} : { x: Math.round(px), y: Math.round(py) };
     window.__dshPetDebug.dragPos = { x: this.pos.x, y: this.pos.y };
     if (window.petBridge) {
       // 完整状态一次捎带：size/bottomPad 让静止宠物从首帧起就登记进碰撞站场
@@ -261,16 +244,18 @@ class PetSprite {
       // vx/vy 带当前速度——飞行中实时值、静止/拖拽 = 0，避免落地后残留上次飞行速度干扰碰撞动量。
       const fly = this.throwState;
       window.petBridge.setBounds(
-        toScreen(this.pos.x - this.margin.l + VIEW.x),
-        toScreen(this.pos.y - this.margin.t + VIEW.y),
-        toScreen(this.size + this.margin.l + this.margin.r),
-        toScreen(this.winH + this.margin.t + this.margin.b),
+        toScreen((this.menuFrame?.x ?? this.pos.x - this.margin.l) + VIEW.x),
+        toScreen((this.menuFrame?.y ?? this.pos.y - this.margin.t) + VIEW.y),
+        toScreen(this.menuFrame?.w ?? this.size + this.margin.l + this.margin.r),
+        toScreen(this.menuFrame?.h ?? this.winH + this.margin.t + this.margin.b),
         toScreen(this.pos.x), // 包围盒左上角（碰撞站场用：窗口坐标 ≠ 包围盒坐标）
         toScreen(this.pos.y),
         toScreen(this.size),
         toScreen(this.bottomPad),
         fly ? toScreen(fly.vx) : 0,
         fly ? toScreen(fly.vy) : 0,
+        toScreen(this.pos.x + this.halfW + VIEW.x),
+        toScreen(this.pos.y + this.height + VIEW.y),
       );
     }
   }
@@ -312,7 +297,7 @@ class PetSprite {
 
   snapPosition(x,y){
     const mode=window.petPreferences?.snapMode||'none';
-    if(mode==='none'||this.dragState.active||this.throwRef!==null)return {x,y};
+    if(this.menuFrame||mode==='none'||this.dragState.active||this.throwRef!==null)return {x,y};
     const targets=[];
     if(mode==='all'||mode==='bottom')PANELS.forEach((r,i)=>targets.push({id:'screen-'+i,x:r.x,y:r.y+r.height,width:r.width,top:r.y}));
     if(mode==='all'||mode==='taskbar')AREAS.forEach((r,i)=>targets.push({id:'work-'+i,x:r.x,y:r.y+r.height,width:r.width,top:r.y}));
@@ -336,6 +321,7 @@ class PetSprite {
    * 拖拽中不动它（用户正握着，位置由指针决定）；飞行中也不动（下一帧物理自会按新边界夹取）。
    */
   relayout() {
+    this.closeMenu();
     this.space = null;
     if (this.dragState.active || this.throwRef !== null) return;
     this.stopMove();
@@ -1081,6 +1067,57 @@ class PetSprite {
     return { x: vx0 - winX, y: vy0 - winY, w, h };
   }
 
+  measureSize(size){
+    this.size=size;
+    this.height=size*9/16;this.halfW=size/2;this.halfH=this.height/2;
+    // Stage padding keeps feet aligned; the hit box follows the visible body, not transparent margins.
+    this.bottomPad=this.height*(S.CANVAS_H-S.FEET_Y)/S.CANVAS_H;
+    this.winH=this.height+this.bottomPad;
+    this.sideAllow=S.HIT_BOX.x0/640*size;
+    this.hitRect={x:S.HIT_BOX.x0/640*size,y:this.bottomPad+S.HIT_BOX.y0/360*this.height,w:(S.HIT_BOX.x1-S.HIT_BOX.x0)/640*size,h:(S.HIT_BOX.y1-S.HIT_BOX.y0)/360*this.height};
+  }
+
+  resizePet(size) {
+    if(!Number.isInteger(size)||size<180||size>900||size===this.size)return;
+    const center=this.pos.x+this.halfW,feet=this.pos.y+this.height;
+    const f=this.menuFrame||{x:this.pos.x-this.margin.l,y:this.pos.y-this.margin.t,w:this.size+this.margin.l+this.margin.r,h:this.winH+this.margin.t+this.margin.b};
+    this.measureSize(size);this.pet.size=size;
+    this.pos={x:center-this.halfW,y:feet-this.height};
+    const l=this.pos.x-f.x,t=this.pos.y-f.y;
+    this.margin={l,t,r:f.w-l-size,b:f.h-t-this.winH};
+    this.updateSizeLayout();
+    this.space=null;
+    this.sendBounds(this.pos.x,this.pos.y);
+    this.rememberSizePosition();
+  }
+
+  rememberSizePosition(){
+    this.customPos={rx:(this.pos.x+this.halfW)/VIEW.w,ry:(this.pos.y+this.halfH)/VIEW.h};
+  }
+
+  updateSizeLayout(){
+    this.el.style.setProperty('--pet-size',this.size+'px');
+    this.el.style.left=this.margin.l+'px';this.el.style.top=this.margin.t+'px';
+    this.stage.style.transform='translateY('+this.bottomPad+'px)';
+    Object.assign(window.__dshPetDebug,{hitRect:this.hitRect,sideAllow:this.sideAllow,winMargin:this.margin});
+  }
+
+  saveMenuSize(size){
+    // Serialize releases so a slower earlier save cannot overwrite the latest size.
+    const write=(this.sizeSaving||Promise.resolve()).catch(()=>{}).then(async()=>{
+      const response=await fetch(BASE+'/config/size',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:this.pet.id,size})});
+      const result=await response.json();
+      if(!response.ok)throw new Error(result.error||'尺寸保存失败');
+      this.savedMenuSize=size;
+    }).catch(error=>{
+      if(this.size===size)this.resizePet(this.savedMenuSize);
+      if(!this.menuOpen&&!this.ac.signal.aborted)this.showBalanceNotice({ok:false,provider:'尺寸保存失败',message:'未能保存，已恢复上次尺寸。请重新调整。'});
+      throw error;
+    });
+    this.sizeSaving=write;
+    return write;
+  }
+
   onContextMenu(e) {
     const d = this.dragState;
     if (d.active || d.dragging || this.justDragged || this.menuOpen) return;
@@ -1090,7 +1127,9 @@ class PetSprite {
     // 桌面专属工具根项（打开网站 / 查看余额 / 碎碎念 / 对话 / 回到初始位置）+ 共享菜单树（动作→分类→具体动画）
     // 碎碎念/对话项无条件显示：手动触发不受 whisperEnabled 限制（该字段只影响自动周期轮询）
     const p=window.petPreferences||{};
-    const tools = [{ label: '桌宠设置', action: 'open-site' },{ label:'窗口设置',children:[
+    this.savedMenuSize??=this.size;
+    const sizeControl={type:'size',label:'尺寸',value:this.size,initialSize:S.PET_REF_WIDTH,onInput:value=>this.resizePet(value),onCommit:value=>this.saveMenuSize(value),getValue:()=>this.size};
+    const tools = [{ label: '桌宠设置', action: 'open-site' },{label:'调整大小',children:[sizeControl]},{ label:'窗口设置',children:[
       {label:(p.windowMode==='top'?'✓ ':'')+'始终置顶',action:'toggle-top'},
       {label:(p.windowMode==='fullscreen'?'✓ ':'')+'全屏隐藏',action:'fullscreen-all'},
       {label:(p.windowMode==='gpt'?'✓ ':'')+'GPT置顶，其余全屏隐藏',action:'fullscreen-except'},
@@ -1107,6 +1146,7 @@ class PetSprite {
     this.setInteractive(true); // 菜单是窗口内 DOM：悬停期间整窗保持可交互，关闭后恢复命中区穿透
     this.syncInputBusy();
     window.__dshPetDebug.menuOpen = true;
+    this.menuFrame={x:this.pos.x-this.margin.l,y:this.pos.y-this.margin.t,w:this.size+this.margin.l+this.margin.r,h:this.winH+this.margin.t+this.margin.b};
     const m = S.mountContextMenu({
       tree,
       x: e.clientX,
@@ -1116,12 +1156,16 @@ class PetSprite {
       onAction: (leaf) => this.onMenuAction(leaf),
       // 菜单被点外/Esc 关闭（非菜单项路径）：同样复位可交互标记，恢复命中区判定
       onClose: () => {
+        this.menuEditing=null;
+        this.menuFrame=null;
+        this.rememberSizePosition();
         this.menuOpen = false;
         window.__dshPetDebug.menuOpen = false;
         this.syncInputBusy();
       },
     });
     this.menuClose = m.close;
+    this.menuEditing = m.editing;
   }
 
   onMenuAction(leaf) {
