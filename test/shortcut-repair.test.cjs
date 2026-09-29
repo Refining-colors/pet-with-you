@@ -4,7 +4,8 @@ const fs = require('node:fs'), path = require('node:path'), os = require('node:o
 const { execFileSync } = require('node:child_process');
 
 test('upgrade refreshes owned shortcut icons without changing launch options or unrelated links', { skip: process.platform !== 'win32' }, t => {
-  const folder = fs.mkdtempSync(path.join(os.tmpdir(), "pet icons ' 中文-"));
+  // Hosted Windows runners expose TEMP through an 8.3 alias; Shell Link expands it.
+  const folder = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "pet icons ' 中文-")));
   t.after(() => fs.rmSync(folder, { recursive: true, force: true }));
   const root = path.resolve(__dirname, '..');
   const ps = s => "'" + s.replaceAll("'", "''") + "'";
