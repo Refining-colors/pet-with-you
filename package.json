@@ -1,6 +1,6 @@
 {
   "name": "pet-with-you",
-  "version": "0.1.0-alpha.7.1.4",
+  "version": "0.1.0-alpha.7.1.6",
   "private": true,
   "main": "bootstrap.cjs",
   "scripts": {

@@ -6,7 +6,7 @@ const {pathToFileURL} = require('node:url');
 const {TaskState} = require('./state.cjs');
 const {CodexClient} = require('./codex-client.cjs');
 const {QuotaService}=require('./quota.cjs');
-const {inspectConnection,installHooks}=require('./connection.cjs');
+const {inspectConnection,installHooks,createConnectionCheck}=require('./connection.cjs');
 const {Appearance}=require('./appearance.cjs');
 const {Preferences}=require('./preferences.cjs');
 const {ApiSettings,ApiClient}=require('./api-client.cjs');
@@ -16,7 +16,7 @@ const ROOT=__dirname;
 const MIME={'.webm':'video/webm','.mov':'video/quicktime','.png':'image/png','.ttf':'font/ttf','.otf':'font/otf','.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8'};
 const readJson=(p,fallback)=>{try{return JSON.parse(fs.readFileSync(p,'utf8'));}catch{return fallback;}};
 const writeJson=(p,v)=>{fs.writeFileSync(p+'.tmp',JSON.stringify(v,null,2));fs.renameSync(p+'.tmp',p);};
-async function startServer({dataDir,defaultMode='pet',monitorSessions=false,sessionRoot,onRuntimeInfo=()=>({development:false}),onClientLauncherStatus=()=>({configured:false}),onSettingsLocate=()=>{},onPetShortcut=async()=>({canceled:true}),onClientLauncher=async()=>({canceled:true}),onOpenThread=async()=>{throw new Error('无法打开对话');},onChange=()=>{},onPreferences=()=>{},onNotify=()=>{},onReview=()=>{},onChooseRuntime=async()=>({canceled:true}),onTray=()=>{},onFontImport=async()=>null,onLogsOpen=async()=>{throw new Error('目录打开功能不可用');},onLogsExport=async()=>{throw new Error('日志导出功能不可用');},protect,unprotect}){
+async function startServer({dataDir,hooksAdapter={inspect:inspectConnection,install:installHooks},defaultMode='pet',monitorSessions=false,sessionRoot,onRuntimeInfo=()=>({development:false}),onClientLauncherStatus=()=>({configured:false}),onSettingsLocate=()=>{},onPetShortcut=async()=>({canceled:true}),onClientLauncher=async()=>({canceled:true}),onOpenThread=async()=>{throw new Error('无法打开对话');},onChange=()=>{},onPreferences=()=>{},onNotify=()=>{},onReview=()=>{},onChooseRuntime=async()=>({canceled:true}),onTray=()=>{},onFontImport=async()=>null,onLogsOpen=async()=>{throw new Error('目录打开功能不可用');},onLogsExport=async()=>{throw new Error('日志导出功能不可用');},protect,unprotect}){
   fs.mkdirSync(dataDir,{recursive:true});fs.mkdirSync(path.join(dataDir,'pet'),{recursive:true});
   const settingsStore=new (require('./settings-store.cjs').SettingsStore)(dataDir);
   const paths={defaultFile:path.join(ROOT,'assets/config.jsonc'),userFile:settingsStore.file,petDir:path.join(dataDir,'pet'),settings:settingsStore};
@@ -41,11 +41,10 @@ async function startServer({dataDir,defaultMode='pet',monitorSessions=false,sess
   const useApi=()=>!connected()||preferences.value.chatSource==='api';
   const chatReady=()=>useApi()?apiSettings.publicValue().configured:preferences.value.chatSourceChosen;
   const publicPreferences=()=>({...preferences.value,chatReady:chatReady(),apiConfigured:apiSettings.publicValue().configured,quotaConfigured:connected()||!!(quota.settings.proxy&&!['provider','auth'].includes(quota.settings.proxy.credential))});
-  let connectionCache,connectionAt=0,connectionFlight;
-  async function connection(){
-    if(connectionCache&&Date.now()-connectionAt<60000)return {...connectionCache,lastHook,monitor:monitor.status()};
-    if(!connectionFlight)connectionFlight=inspectConnection().then(r=>{connectionCache=r;connectionAt=Date.now();return r;}).finally(()=>connectionFlight=null);
-    return {...await connectionFlight,lastHook,monitor:monitor.status()};
+  const connectionCheck=createConnectionCheck(hooksAdapter.inspect);
+  async function connection(fresh=false){
+    const result=await connectionCheck.read({fresh});
+    return connected()?{...result,lastHook,monitor:monitor.status()}:{ready:false,mode:'pet',disabled:true};
   }
   const token=crypto.randomBytes(24).toString('hex');
   const prefix='/'+token+'/dsh-pet-7340';
@@ -146,6 +145,7 @@ async function startServer({dataDir,defaultMode='pet',monitorSessions=false,sess
       }
       if(route==='/codex-withu.png'&&req.method==='GET')return file(path.join(ROOT,'build'),'codex-withu.png');
       if(route==='/settings-file.js')return file(path.join(ROOT,'ui'),'settings-file.js');
+      if(route==='/hooks-review-icon.png')return file(path.join(ROOT,'ui'),'hooks-review-icon.png');
       if(route==='/ui.js')return file(path.join(ROOT,'ui'),'ui.js');
       if(route==='/autosave.js')return file(path.join(ROOT,'ui'),'autosave.js');
       if(route==='/shared-core.js')return file(path.join(ROOT,'runtime'),'shared-core.js');
@@ -156,7 +156,7 @@ async function startServer({dataDir,defaultMode='pet',monitorSessions=false,sess
         if(req.method==='PUT'){
           const previous={...preferences.value};const before=previous.mode;const next=preferences.save(await body());
           if(previous.chatSource!==next.chatSource||previous.chatSourceChosen!==next.chatSourceChosen){modeEpoch++;whispers.clear();client.close();apiClient.close();}
-          if(before!==next.mode){modeEpoch++;connectionCache=null;connectionAt=0;rateCache=null;rateAt=0;tasks.sessions.clear();tasks.ts=Date.now();lastHook=null;whispers.clear();client.close();apiClient.close();}
+          if(before!==next.mode){modeEpoch++;connectionCheck.invalidate();rateCache=null;rateAt=0;tasks.sessions.clear();tasks.ts=Date.now();lastHook=null;whispers.clear();client.close();apiClient.close();}
           try{await onPreferences(next,before!==next.mode||previous.chatSource!==next.chatSource||previous.chatSourceChosen!==next.chatSourceChosen);}catch(e){preferences.save(previous);try{await onPreferences(previous,true);}catch{}throw e;}
           if(monitorSessions)monitor.setEnabled(connected());
           return json(publicPreferences());
@@ -191,9 +191,14 @@ async function startServer({dataDir,defaultMode='pet',monitorSessions=false,sess
         if(value&&preferences.value.replyMode==='timed'&&Date.now()-value.at>preferences.value.replySeconds*1000){replyStates.delete(id);value=null;}
         return json(value||null);
       }
-      if(route==='/connection')return connected()?json(await connection()):json({ready:false,mode:'pet',disabled:true,lastHook});
-      if(route==='/connect'&&req.method==='POST'){preferences.save({mode:'connected'});await onPreferences(preferences.value,true);installHooks();if(monitorSessions)monitor.setEnabled(true);connectionAt=0;return json(await connection());}
-      if(route==='/review-hooks'&&req.method==='POST'){await onReview();return json({ok:true});}
+      if(route==='/connection')return connected()?json(await connection(url.searchParams.get('fresh')==='1')):json({ready:false,mode:'pet',disabled:true,lastHook});
+      if(route==='/connect'&&req.method==='POST'){
+        preferences.save({mode:'connected'});await onPreferences(preferences.value,true);
+        hooksAdapter.install();if(monitorSessions)monitor.setEnabled(true);
+        try{return json({...await connection(true),configured:true});}
+        catch(error){const detail=report('connection-inspect',error,'connection-failed');return json({ready:false,configured:true,inspectionError:detail.message,hookCommand:require('./hook-command.cjs').hookCommand().command});}
+      }
+      if(route==='/review-hooks'&&req.method==='POST'){if(!connected())return json({error:'请先开启连接模式'},400);await onReview();return json({ok:true});}
       if(route==='/quota/settings'){
         if(req.method==='DELETE'){const value=quota.clear();await onPreferences(preferences.value,true);return json(value);}
         if(req.method==='PUT'){const raw=await body();if(raw.selectedOnly)quota.select(raw.selected);else quota.save(raw);await onPreferences(preferences.value,true);return json(await quota.displaySettings(connected()));}

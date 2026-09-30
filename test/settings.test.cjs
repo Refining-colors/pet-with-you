@@ -4,6 +4,9 @@ const {Preferences}=require('../preferences.cjs');
 test('reply duration and separate tab orders survive restart and reject invalid values',t=>{
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'pet-settings-'));t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));
   const p=new Preferences(dir);p.save({disableRoaming:true,replyMode:'permanent',replySeconds:25,moduleOrder:{basic:['apiSection','quotaSection'],gpt:['clientSection']}});
+  assert.equal(p.value.disableThrow,false);p.save({disableThrow:true});assert.equal(new Preferences(dir).value.disableThrow,true);assert.throws(()=>p.save({disableThrow:'true'}));
+  assert.equal(p.value.disableEdgeBounce,false);p.save({disableEdgeBounce:true});assert.equal(new Preferences(dir).value.disableEdgeBounce,true);assert.throws(()=>p.save({disableEdgeBounce:'true'}));
+  p.save({disableThrow:false});assert.equal(p.value.disableEdgeBounce,true);
   assert.equal(p.value.disableEventResponse,false);p.save({disableEventResponse:true});assert.equal(new Preferences(dir).value.disableEventResponse,true);assert.throws(()=>p.save({disableEventResponse:'true'}));
   assert.equal(p.value.quotaAfterTurn,false);p.save({quotaAfterTurn:true});assert.equal(new Preferences(dir).value.quotaAfterTurn,true);assert.throws(()=>p.save({quotaAfterTurn:'yes'}));
   const reopened=new Preferences(dir);assert.equal(reopened.value.disableRoaming,true);assert.throws(()=>p.save({disableRoaming:'yes'}));assert.equal(reopened.value.replyMode,'permanent');assert.equal(reopened.value.replySeconds,25);

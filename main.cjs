@@ -66,7 +66,9 @@ if(!app.requestSingleInstanceLock()){app.quit();}else{
   async function prepareConnection(){await fetch(service.base+'/connect',{method:'POST'});openSettings();}
   function reviewHooks(){
     if(developmentPreview)throw new Error('开发预览不审阅日常客户端 Hooks；请使用隔离测试验证联动。');
-    return shell.openPath(path.join(__dirname,'Review-Hooks.cmd')).then(error=>{if(error)throw new Error(error);});
+    const child=require('./review-hooks.cjs').startReview({tty:false});
+    child.on('exit',code=>{if(code)service.diagnostics.record('connection-inspect',new Error('Hooks 备用终端退出，代码 '+code+'；请优先在客户端内授权。'),'connection-failed');});
+    return new Promise((resolve,reject)=>{child.once('spawn',resolve);child.once('error',reject);});
   }
   async function createPetShortcutWithDialog(){
     const selected=await dialog.showOpenDialog(settings,{title:'选择桌宠快捷方式保存目录',defaultPath:app.getPath('desktop'),properties:['openDirectory','createDirectory']});

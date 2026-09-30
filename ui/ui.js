@@ -80,12 +80,13 @@ setInterval(status,3000);
 async function api(route,method='GET',body){const r=await fetch(base+route,{method,headers:body?{'Content-Type':'application/json'}:undefined,body:body?JSON.stringify(body):undefined});const j=await r.json();if(!r.ok)throw new Error(j.message||j.error||'请求失败');return j;}
 function showConnection(c){
   $('#reviewHooks').hidden=false;
+  if(c.hookCommand)$('#hookCommand').textContent=c.hookCommand;
   const local=c.monitor?.lastEvent;
   const output=$('#connectionStatus');output.replaceChildren();
-  const title=c.disabled?'当前连接状态：部分事件已停用':c.needsReview?'当前连接状态：等待 Hooks 信任':c.ready&&c.lastHook?'当前连接状态：已收到 Hook 事件':local?'当前连接状态：本地任务状态已接通':c.ready?'当前连接状态：Hooks 已信任，等待事件':'当前连接状态：待连接 / 配置不完整';
+  const title=c.inspectionError?'当前连接状态：配置已写入，自动检查未完成':c.disabled?'当前连接状态：部分事件已停用':c.needsReview?'当前连接状态：等待 Hooks 信任':c.ready&&c.lastHook?'当前连接状态：已收到 Hook 事件':local?'当前连接状态：本地任务状态已接通':c.ready?'当前连接状态：Hooks 已信任，等待事件':'当前连接状态：待连接 / 配置不完整';
   output.append(text('strong',title));
   if(local)output.append(text('span','本地任务最近更新：'+new Date(local.at).toLocaleTimeString()));
-  const message=c.ready?(c.lastHook?'最近 Hook：'+c.lastHook.event:'尚未收到 Hook；任务反馈可由本地会话状态提供。'):c.needsReview?'已安装 '+c.installed+' 项事件配置，其中 '+c.needsReview+' 项尚未信任。':c.disabled?'请在 /hooks 中检查已停用的事件配置。':'请点击“连接 / 检查客户端”准备联动配置。';
+  const message=c.inspectionError?c.inspectionError+' 可先按下方步骤在客户端授权；自动检查需要兼容的 Codex 运行程序。':c.ready?(c.lastHook?'最近 Hook：'+c.lastHook.event:'尚未收到 Hook；任务反馈可由本地会话状态提供。'):c.needsReview?'已安装 '+c.installed+' 项事件配置，其中 '+c.needsReview+' 项尚未信任。':c.disabled?'请在客户端 Hooks 界面检查已停用的事件配置。':'请点击“连接 / 检查客户端”准备联动配置。';
   output.append(text('span',message));
 }
 let connectionRevision=0,connectionBusy=false;
@@ -95,21 +96,26 @@ async function connectionStatus(){
   try{const c=await api('/connection');if(revision===connectionRevision&&!connectionBusy&&currentMode==='connected')showConnection(c);}
   catch(e){if(revision===connectionRevision&&!connectionBusy)$('#connectionNotice').textContent='联动检查失败：'+e.message;}
 }
-$('#connect').onclick=async()=>{
+async function checkConnection(install=true){
   if(connectionBusy)return;
   connectionBusy=true;++connectionRevision;
   const button=$('#connect'),output=$('#connectionStatus');
   button.disabled=true;button.textContent='正在检查…';output.setAttribute('aria-busy','true');output.classList.remove('connection-checked');
+  $('#recheckHooks').disabled=true;
   $('#connectionNotice').textContent='正在连接并检查客户端…';
   try{
     // Keep a fast local check perceptible, and invalidate older background polls.
-    const [c]=await Promise.all([api('/connect','POST'),new Promise(resolve=>setTimeout(resolve,450))]);
+    const [c]=await Promise.all([install?api('/connect','POST'):api('/connection?fresh=1'),new Promise(resolve=>setTimeout(resolve,450))]);
+    if(currentMode!=='connected')return;
     showConnection(c);$('#connectionNotice').textContent='检查完成 · '+new Date().toLocaleTimeString();output.classList.add('connection-checked');
     await loadPreferences();
   }catch(e){$('#connectionNotice').textContent='本次连接 / 检查失败：'+e.message;}
-  finally{connectionBusy=false;button.disabled=false;button.textContent='连接 / 检查客户端';output.setAttribute('aria-busy','false');}
-};
-$('#reviewHooks').onclick=async()=>{try{await api('/review-hooks','POST');$('#connectionNotice').textContent='已打开信任入口，请输入 /hooks 审阅桌宠事件，再回到这里检查。';}catch(e){$('#connectionNotice').textContent=e.message;}};
+  finally{connectionBusy=false;button.disabled=false;$('#recheckHooks').disabled=false;button.textContent='连接 / 检查客户端';output.setAttribute('aria-busy','false');}
+}
+$('#connect').onclick=()=>checkConnection(true);
+$('#recheckHooks').onclick=()=>checkConnection(false);
+$('#reviewHooks').onclick=()=>{$('#hooksGuide').open=true;$('#hooksGuide').scrollIntoView({block:'start',behavior:'smooth'});};
+$('#reviewHooksTerminal').onclick=async()=>{try{await api('/review-hooks','POST');$('#connectionNotice').textContent='已请求打开备用终端。出现 Codex 输入框后输入 /hooks；若报错，请使用上方客户端内授权步骤，再点“授权后重新检查”。';}catch(e){$('#connectionNotice').textContent=e.message;}};
 setInterval(connectionStatus,15000);
 function fillQuota(q){
   window.PetSettingsAutosave?.clear('proxy');
@@ -174,7 +180,7 @@ for(const [a,b] of [['interval','apiWhisperInterval'],['autoWhisperProbability',
 $('#saveApiAutoWhisper').onclick=async()=>{const button=$('#saveApiAutoWhisper');button.disabled=true;try{$('#interval').value=$('#apiWhisperInterval').value;$('#autoWhisperProbability').value=$('#apiWhisperProbability').value;await $('#saveAutoWhisper').onclick();$('#apiAutoWhisperResult').textContent=$('#autoWhisperResult').textContent;}finally{button.disabled=false;}};
 $('#restoreTray').onclick=()=>api('/tray/show','POST').catch(e=>$('#appearanceResult').textContent=e.message);
 settingsLoads.push(loadAppearance());
-async function loadPreferences(){try{const p=await api('/preferences');if(window.PetSettingsAutosave?.dirty)return;$('#quotaAfterTurn').checked=p.quotaAfterTurn;$('#quotaMode').value=p.quotaMode;$('#quotaSeconds').value=p.quotaSeconds;$('#whisperStreaming').checked=p.whisperStreaming;$('#autoWhisperProbability').value=$('#apiWhisperProbability').value=p.autoWhisperProbability;applyMode(p.mode);for(const key of ['disableEventResponse','ignoreAccountTimeouts','taskBasicFeedback','taskNativeFeedback'])$('#'+key).checked=p[key];$('#disableRoaming').checked=p.disableRoaming;showSourceChoice(p);loadModuleOrder(p.moduleOrder);document.querySelector('input[name=replyMode][value='+p.replyMode+']').checked=true;$('#replySeconds').value=p.replySeconds;$('#windowMode').value=p.windowMode;$('#clickAction').value=p.clickAction;$('#actionSpeed').value=p.actionSpeed;for(const k of ['autostart','followClientClose'])$('#'+k).checked=p[k];$('#snapMode').value=p.snapMode;}catch(e){$('#preferencesResult').textContent=e.message;}}
+async function loadPreferences(){try{const p=await api('/preferences');if(window.PetSettingsAutosave?.dirty)return;$('#quotaAfterTurn').checked=p.quotaAfterTurn;$('#quotaMode').value=p.quotaMode;$('#quotaSeconds').value=p.quotaSeconds;$('#whisperStreaming').checked=p.whisperStreaming;$('#autoWhisperProbability').value=$('#apiWhisperProbability').value=p.autoWhisperProbability;applyMode(p.mode);for(const key of ['disableEventResponse','ignoreAccountTimeouts','taskBasicFeedback','taskNativeFeedback'])$('#'+key).checked=p[key];$('#disableRoaming').checked=p.disableRoaming;$('#disableThrow').checked=p.disableThrow;$('#disableEdgeBounce').checked=p.disableEdgeBounce;showSourceChoice(p);loadModuleOrder(p.moduleOrder);document.querySelector('input[name=replyMode][value='+p.replyMode+']').checked=true;$('#replySeconds').value=p.replySeconds;$('#windowMode').value=p.windowMode;$('#clickAction').value=p.clickAction;$('#actionSpeed').value=p.actionSpeed;for(const k of ['autostart','followClientClose'])$('#'+k).checked=p[k];$('#snapMode').value=p.snapMode;}catch(e){$('#preferencesResult').textContent=e.message;}}
 $('#savePreferences').onclick=async()=>{try{await api('/preferences','PUT',{windowMode:$('#windowMode').value,clickAction:$('#clickAction').value,actionSpeed:Number($('#actionSpeed').value)});$('#preferencesResult').textContent='已保存，几秒内生效。';}catch(e){$('#preferencesResult').textContent=e.message;}};
 async function changeMode(){
   $('#petMode').disabled=$('#connectedMode').disabled=true;

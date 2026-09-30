@@ -18,6 +18,7 @@ module.exports=async function(pet){
       })()`);
       assert.deepEqual(stable.during,stable.before,'opening a menu cannot relocate a painted video before the native window catches up');
       await sleep(80);assert.deepEqual(pet.getContentBounds(),native,'menu opening does not move or resize the native window');
+      if(size===originalSize&&i===0)require('node:fs').writeFileSync(require('node:path').join(__dirname,'../qa-output/pet-context-menu.png'),(await pet.webContents.capturePage()).toPNG());
       await run('sprites[0].closeMenu()');await sleep(80);
       assert.deepEqual(pet.getContentBounds(),native,'closing the menu preserves the native frame');
       assert.deepEqual(await run('({left:sprites[0].el.style.left,top:sprites[0].el.style.top})'),stable.before);

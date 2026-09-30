@@ -4,7 +4,7 @@
 
 一个运行在 Windows 桌面上的动画桌宠：可以随机玩耍、手动点播、聊天与碎碎念，也可以连接 Codex 桌面客户端，展示任务进度和账户额度。
 
-> `0.1.0-alpha.7.1.4` Windows 公开预览版：[下载安装程序](https://github.com/Refining-colors/pet-with-you/releases/tag/v0.1.0-alpha.7.1.4)。纯桌宠无需另装 Node.js、Git 或 Codex CLI。由 [Refining-colors](https://github.com/Refining-colors) 维护。项目代码采用 MIT，角色动画按原作条款说明。
+> `0.1.0-alpha.7.1.6` Windows 公开预览版：[下载安装程序](https://github.com/Refining-colors/pet-with-you/releases/tag/v0.1.0-alpha.7.1.6)。纯桌宠无需另装 Node.js、Git 或 Codex CLI。由 [Refining-colors](https://github.com/Refining-colors) 维护。项目代码采用 MIT，角色动画按原作条款说明。
 
 基于 [PC2005-cloud/dsh-pet](https://github.com/PC2005-cloud/dsh-pet) 改造与扩展，保留原作角色和 106 段动画。原作代码、素材与本项目适配工作的关系见 [来源与致谢](ATTRIBUTION.md)。
 
@@ -34,7 +34,7 @@
 
 - **106 段动画**：待机、点击回应、吃东西、玩耍等；日常动作按分类权重随机轮换，也可右键手动点播。
 - **桌面互动**：拖动、抛掷、尺寸调整、多宠物同屏，支持禁止自主跑动。
-- **窗口与位置**：四种互斥窗口模式：普通显示、始终置顶、全屏隐藏、GPT置顶，其余全屏隐藏；支持靠近屏幕底部、任务栏上方及客户端窗口下沿时吸附。
+- **窗口与位置**：四种互斥窗口模式：普通显示、始终置顶、全屏隐藏、在GPT置顶，其余全屏隐藏；支持靠近屏幕底部、任务栏上方及客户端窗口下沿时吸附。
 - **位置记忆**：切换模式、重新打开时尽量恢复原位置；显示器变化时将宠物调整到可见区域。
 - **托盘管理**：单击托盘图标立即显示并临时置顶 8 秒；隐藏托盘图标后，可以从桌宠右键菜单恢复。
 
@@ -71,7 +71,7 @@
 
 ### 推荐：下载安装版
 
-1. 打开 [Releases 下载页](https://github.com/Refining-colors/pet-with-you/releases/tag/v0.1.0-alpha.7.1.4)，下载 **pet-with-you-0.1.0-alpha.7.1.4-x64-setup.exe**。
+1. 打开 [Releases 下载页](https://github.com/Refining-colors/pet-with-you/releases/tag/v0.1.0-alpha.7.1.6)，下载 **pet-with-you-0.1.0-alpha.7.1.6-x64-setup.exe**。
 2. 双击安装，选择目录和是否创建桌面快捷方式。
 3. 从桌面或开始菜单中的 **pet-with-u** 启动，默认纯桌宠；右键打开设置。
 
@@ -90,7 +90,7 @@
 1. 安装 [Node.js LTS](https://nodejs.org/en/download)（至少 22.12，保留 npm 和 PATH 选项）。
 2. 在本仓库点击 **Code → Download ZIP**，完整解压到准备长期保留的目录。
 3. 双击 `Install-Pet.cmd` 安装依赖，等待提示完成。可双击 `Check-Setup.cmd` 检查环境。
-4. 双击 `Start-Pet.cmd` 启动桌宠和设置。
+4. 双击 `Start-Pet.cmd` 启动桌宠；右键打开设置。
 5. 首次默认使用纯桌宠模式；右键宠物可查看动作和打开设置。
 
 安装脚本负责下载项目依赖与 Electron，不会自动安装 Node.js、Git 或 Codex。首次下载可能需要几分钟；失败可按 [下载排错](docs/TROUBLESHOOTING.md#安装下载失败) 重试。
@@ -106,7 +106,7 @@ node launch.cjs
 
 | 文件 | 作用 |
 | --- | --- |
-| `Start-Pet.cmd` | 启动桌宠及设置，使用上次保存的模式 |
+| `Start-Pet.cmd` | 只启动桌宠，使用上次保存的模式；右键打开设置 |
 | `Connect-Pet.cmd` | 打开连接设置，适合先配置客户端联动 |
 | `Start-And-Connect.cmd` | 启动桌宠并准备客户端联动配置 |
 

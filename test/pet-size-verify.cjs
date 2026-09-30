@@ -3,7 +3,7 @@ const fs=require('node:fs'),path=require('node:path');
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 
 module.exports=async function({pet,settings,service}){
-  const run=script=>pet.webContents.executeJavaScript(script);
+  const run=script=>pet.webContents.executeJavaScript('(async()=>{try{return {ok:true,value:await (async()=>{return '+script+'\n})()}}catch(e){return {ok:false,error:e.stack}}})()').then(r=>{if(!r.ok)throw new Error(r.error);return r.value;});
   const original=await run(`({size:sprites[0].size,id:sprites[0].pet.id})`);
   const originalName=await settings.webContents.executeJavaScript(`main.pets[0].name`);
   await settings.webContents.executeJavaScript(`(()=>{

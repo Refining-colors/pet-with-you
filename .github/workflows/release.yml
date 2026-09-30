@@ -5,7 +5,7 @@ on:
       tag:
         description: Existing version tag to build
         required: true
-        default: v0.1.0-alpha.7.1.4
+        default: v0.1.0-alpha.7.1.6
 permissions:
   contents: write
 concurrency:

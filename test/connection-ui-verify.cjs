@@ -7,6 +7,13 @@ module.exports = async function verify(settings) {
     const ready={ready:true,lastHook:{event:'Stop'},monitor:{}};
     try{
       loadPreferences=async()=>{};
+      let calls=[];api=async(route)=>{calls.push(route);return ready;};
+      $('#hooksGuide').open=false;await $('#reviewHooks').onclick();
+      checks.guide=$('#hooksGuide').open&&calls.length===0;
+      checks.icon=$('#hooksGuide img').getAttribute('src')==='hooks-review-icon.png';
+      await $('#recheckHooks').onclick();checks.fresh=calls.includes('/connection?fresh=1')&&!calls.includes('/connect');
+      showConnection({configured:true,inspectionError:'fixture runtime unavailable',hookCommand:'fixture/resources/app/hook.cmd'});
+      checks.runtime=$('#connectionStatus strong').textContent.includes('配置已写入')&&$('#hookCommand').textContent.endsWith('hook.cmd');
       showConnection({needsReview:2,installed:3});
       checks.pending=$('#connectionStatus strong').textContent.includes('等待 Hooks 信任');
       showConnection(ready);

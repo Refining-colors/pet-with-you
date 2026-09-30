@@ -27,6 +27,7 @@ module.exports=async function verify({service,openSettings,getSettings,largeTray
     assert.equal(await settings.webContents.executeJavaScript(`document.querySelector('#petShortcutPreviewHint').hidden`),true);
     assert.match(await settings.webContents.executeJavaScript(`document.querySelector('#clientLauncherResult').textContent`),/尚未创建/);
     assert.equal(await settings.webContents.executeJavaScript(`document.querySelector('#followClientStart')===null`),true);
+    console.error('VERIFY_STAGE: pet-shortcut-verify.cjs');
     await require('./pet-shortcut-verify.cjs')(settings);
     assert.equal(await settings.webContents.executeJavaScript(`document.querySelector('#settingsFileSection').nextElementSibling.tagName`),'FOOTER');
     assert.equal(await settings.webContents.executeJavaScript(`document.querySelector('#locateSettingsFile').textContent.includes('定位')`),true);
@@ -54,13 +55,18 @@ module.exports=async function verify({service,openSettings,getSettings,largeTray
     const order=await settings.webContents.executeJavaScript(`(async()=>{const section=document.querySelector('#apiSection');await moveModule(section,-1);return modules(document.querySelector('#basicPanel')).map(e=>e.id);})()`);
     assert.deepEqual((await request('/preferences')).moduleOrder.basic,order);
     await settings.webContents.executeJavaScript(`moduleOrderLoaded=false;loadModuleOrder(${JSON.stringify({basic:[],gpt:[]})})`);
+    console.error('VERIFY_STAGE: module-sort-verify.cjs');
     await require('./module-sort-verify.cjs')(settings,service);
     const sizeControls=await settings.webContents.executeJavaScript(`(()=>{const slider=document.querySelector('.pet-size input[type=range]'),number=document.querySelector('.pet-size input[type=number]'),old=main.pets[0].size;slider.value=555;slider.dispatchEvent(new Event('input'));const fromSlider=Number(number.value)===555&&main.pets[0].size===555;number.value=420;number.dispatchEvent(new Event('input'));const fromNumber=Number(slider.value)===420&&main.pets[0].size===420;number.value=old;number.dispatchEvent(new Event('input'));return {fromSlider,fromNumber};})()`);
     assert.deepEqual(sizeControls,{fromSlider:true,fromNumber:true});
     assert.equal(await pet().webContents.executeJavaScript('window.__dshPetDebug.configOk'),true);
     const config=await request('/config');config.main.animationWeights.move=0;
     await request('/config',config.main);await sleep(600);
+    console.error('VERIFY_STAGE: menu-frame-verify.cjs');
     await require('./menu-frame-verify.cjs')(pet());
+    console.error('VERIFY_STAGE: interaction-options-verify.cjs');
+    await require('./interaction-options-verify.cjs')({pet:pet(),settings,service});
+    console.error('VERIFY_STAGE: pet-size-verify.cjs');
     await require('./pet-size-verify.cjs')({pet:pet(),settings,service});
     const drag=await pet().webContents.executeJavaScript(`(async()=>{const s=sprites[0];s.stopMove();s.stopThrow();s.sendBounds(400,300);s.onPointerDown({button:0,pointerId:17,screenX:600,screenY:500,clientX:100,clientY:100});const before={...s.pos};s.onPointerMove({screenX:720,screenY:560});await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));const result={dx:s.pos.x-before.x,dy:s.pos.y-before.y,wantX:toLocal(120),wantY:toLocal(60),dragAnimation:s.animations.drag.includes(s.anim)};s.dragTrail=[];s.onPointerUp({screenX:720,screenY:560});s.stopThrow();s.stopMove();return result;})()`);
     assert.ok(Math.abs(drag.dx-drag.wantX)<1&&Math.abs(drag.dy-drag.wantY)<1);assert.equal(drag.dragAnimation,true);
@@ -111,6 +117,7 @@ module.exports=async function verify({service,openSettings,getSettings,largeTray
     assert.equal((await request('/client-launcher')).prompted,true);
     assert.equal(await settings.webContents.executeJavaScript(`document.querySelector('#clientLauncherDialog').open`),false);
     const tabs=await settings.webContents.executeJavaScript(`(()=>{document.querySelector('#apiBaseUrl').value='https://draft.example/v1';selectTab('gpt');const nested=['createClientLauncher','followClientClose','chatSource','notify','queryAccount','clientPets'].every(id=>document.querySelector('#gptPanel').contains(document.getElementById(id)));selectTab('basic');return {nested,draft:document.querySelector('#apiBaseUrl').value};})()`);
+    console.error('VERIFY_STAGE: connection-ui-verify.cjs');
     await require('./connection-ui-verify.cjs')(settings);
     assert.deepEqual(tabs,{nested:true,draft:'https://draft.example/v1'});
     assert.deepEqual(await pet().webContents.executeJavaScript('sprites[0].pos'),stored);
@@ -179,13 +186,20 @@ module.exports=async function verify({service,openSettings,getSettings,largeTray
     fs.writeFileSync(path.join(dir,'api-wide.png'),(await settings.webContents.capturePage()).toPNG());
     await settings.webContents.executeJavaScript(`document.querySelector('#quotaSection').scrollIntoView()`);await sleep(150);
     fs.writeFileSync(path.join(dir,'quota-layout.png'),(await settings.webContents.capturePage()).toPNG());
+    console.error('VERIFY_STAGE: diagnostics-verify.cjs');
     await require('./diagnostics-verify.cjs')({settings,service,pet:pet(),dir});
+    console.error('VERIFY_STAGE: task-feedback-verify.cjs');
     await require('./task-feedback-verify.cjs')({settings,service,pet:pet(),dir});
     await request('/preferences',{replyMode:'timed',replySeconds:1});
+    console.error('VERIFY_STAGE: reply-verify.cjs');
     await require('./reply-verify.cjs')(pet());
+    console.error('VERIFY_STAGE: whisper-verify.cjs');
     await require('./whisper-verify.cjs')({settings,service,pet:pet(),dir});
+    console.error('VERIFY_STAGE: streaming-verify.cjs');
     await require('./streaming-verify.cjs')({settings,service,pet:pet()});
+    console.error('VERIFY_STAGE: quota-bubble-verify.cjs');
     await require('./quota-bubble-verify.cjs')({settings,service,pet:pet(),dir});
+    console.error('VERIFY_STAGE: animation-assets-verify.cjs');
     await require('./animation-assets-verify.cjs')({pet:pet(),dir});
     fs.writeFileSync(path.join(dir,'pet.png'),(await pet().webContents.capturePage()).toPNG());
     fs.writeFileSync(path.join(dir,'desktop.json'),JSON.stringify({ok:true,snap,errors},null,2));
@@ -209,7 +223,9 @@ module.exports=async function verify({service,openSettings,getSettings,largeTray
     assert.equal(await pet().webContents.executeJavaScript(`sprites[0].whisperView?.[0]?.text`),'Persistent across mode rebuild');
     assert.equal(await pet().webContents.executeJavaScript('window.__dshPetDebug.configOk'),true);
     fs.writeFileSync(path.join(dir,'reply.png'),(await pet().webContents.capturePage()).toPNG());
+    console.error('VERIFY_STAGE: autosave-verify.cjs');
     await require('./autosave-verify.cjs')({service,openSettings,getSettings});
+    console.error('VERIFY_STAGE: window-stacking-verify.cjs');
     await require('./window-stacking-verify.cjs')();
     app.quit();
   }catch(e){console.error(e);app.exit(1);}

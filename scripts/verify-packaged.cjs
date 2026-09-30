@@ -43,6 +43,11 @@ async function run(program, args, options = {}, input) {
     const settingsHtml=await fetch(connection.base+'/settings').then(r=>r.text());
     assert.ok(!/id="followClientStart"/.test(settingsHtml),'installed settings remove retired client-start toggle');
     assert.ok(settingsHtml.includes('创建联动启动器')&&settingsHtml.includes('Codex withu'),'installed settings show current launcher');
+    assert.ok(settingsHtml.includes('id="disableThrow"')&&settingsHtml.includes('id="disableEdgeBounce"'),'installed settings expose independent motion switches');
+    assert.ok(settingsHtml.includes('查看 Hooks 授权步骤'),'installed settings include inline Hooks guidance');
+    const hookIcon = await fetch(connection.base + '/hooks-review-icon.png');
+    assert.equal(hookIcon.status, 200);
+    assert.deepEqual(Buffer.from(await hookIcon.arrayBuffer()), fs.readFileSync(path.join(__dirname, '../ui/hooks-review-icon.png')), 'packaged Hooks guide includes the supplied icon');
     assert.deepEqual(fs.readFileSync(path.join(root,'build/codex-withu.ico')),fs.readFileSync(path.join(__dirname,'../build/codex-withu.ico')),'installed launcher uses selected icon');
     const menuContext={};require('node:vm').runInNewContext(fs.readFileSync(path.join(root,'runtime/shared-core.js'),'utf8'),menuContext);
     const groups=menuContext.PetShared.buildMenuTree({idle:[],turn:[],drag:[],clicks:[],moves:{actions:[{name:'原地左转奔跑'}]}})[0].children;
@@ -50,6 +55,8 @@ async function run(program, args, options = {}, input) {
     assert.ok(fs.existsSync(path.join(root, 'pet-shortcut.cjs')), 'installed settings can create pet shortcuts');
     const unified = JSON.parse(fs.readFileSync(path.join(data, 'settings.json')));
     assert.equal(unified.schemaVersion, 1); assert.equal(unified.sections.preferences.mode, 'pet');
+    assert.equal(unified.sections.preferences.disableThrow, false);
+    assert.equal(unified.sections.preferences.disableEdgeBounce, false);
     for (const old of ['preferences.json','main-config.json','api-settings.json','quota.json','appearance.json']) assert.equal(fs.existsSync(path.join(data,old)),false);
     const config = await fetch(connection.base + '/config').then(r => r.json());
     assert.ok(Object.values(config).flatMap(c => c.pets).every(p => p.whisperEnabled === false));

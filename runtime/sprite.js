@@ -655,6 +655,7 @@ class PetSprite {
 
   /** 抛掷驱动：重力 + 边缘反弹 + 落地摩擦，落定后写入 customPos */
   startThrow(px, py, vx, vy) {
+    if(window.petPreferences?.disableThrow)return;
     this.stopDragFollow();
     this.stopMove();
     // 边界 = 显示器工作区**并集**：空洞是墙（宠物再也飞不进不可见区域），屏缝不是墙（跨屏弹跳照旧）
@@ -664,13 +665,15 @@ class PetSprite {
     let prevGrounded = false; // 落地 Q 弹：只在空中→地面转换帧触发一次
     const step = () => {
       if (this.throwToken !== token) return;
+      if(window.petPreferences?.disableThrow){this.stopThrow();this.rememberSizePosition();this.sendBounds(this.pos.x,this.pos.y);return;}
       const now = performance.now();
       const dt = (now - last) / 1000;
       last = now;
       const fallingVy = state.vy; // 本帧积分前的竖直速度（正=下落）：即落地冲击速度
       // 每帧重取：显示器变化时 relayout() 会让缓存失效，res.screen 必须与这一份对应
       const sp = this.throwSpaceOf();
-      const res = S.throwStepRegion(state, dt, sp, this.physics);
+      const physics = window.petPreferences?.disableEdgeBounce ? {...this.physics,restitution:0} : this.physics;
+      const res = S.throwStepRegion(state, dt, sp, physics);
       state = { x: res.x, y: res.y, vx: res.vx, vy: res.vy };
       this.throwState = state;
       // 上报飞行状态（节流 ~30ms）：主进程 broker 汇聚后广播，其它窗口用它做跨窗碰撞检测；
@@ -716,7 +719,7 @@ class PetSprite {
       // 「地面」是**当前所在屏**的底边——多屏各有各的地面高度
       const curBounds = sp.bounds[res.screen] || sp.bounds[0];
       const grounded = curBounds ? res.y >= curBounds.maxY - 1 : false;
-      if (res.bounced && grounded && !prevGrounded) {
+      if (res.bounced && grounded && !prevGrounded && !window.petPreferences?.disableEdgeBounce) {
         const frontEl = this.front === 0 ? this.videoA : this.videoB;
         this.startSquash(frontEl, S.landingSquash(fallingVy));
       }
@@ -929,7 +932,7 @@ class PetSprite {
       const px = this.pos.x;
       const py = this.pos.y;
       // 初速估算：够快就抛掷（重力+边缘反弹+落地摩擦），否则原地放下
-      const vel = S.estimateReleaseVelocity(this.dragTrail, performance.now(), this.physics);
+      const vel = window.petPreferences?.disableThrow ? null : S.estimateReleaseVelocity(this.dragTrail, performance.now(), this.physics);
       this.dragTrail = [];
       if (vel) {
         console.log(
@@ -1129,10 +1132,10 @@ class PetSprite {
     const p=window.petPreferences||{};
     this.savedMenuSize??=this.size;
     const sizeControl={type:'size',label:'尺寸',value:this.size,initialSize:S.PET_REF_WIDTH,onInput:value=>this.resizePet(value),onCommit:value=>this.saveMenuSize(value),getValue:()=>this.size};
-    const tools = [{ label: '桌宠设置', action: 'open-site' },{label:'调整大小',children:[sizeControl]},{ label:'窗口设置',children:[
+    const tools = [{ label: '桌宠控制台', action: 'open-site', emphasis: true },{label:'调整大小',children:[sizeControl]},{ label:'窗口设置',children:[
       {label:(p.windowMode==='top'?'✓ ':'')+'始终置顶',action:'toggle-top'},
       {label:(p.windowMode==='fullscreen'?'✓ ':'')+'全屏隐藏',action:'fullscreen-all'},
-      {label:(p.windowMode==='gpt'?'✓ ':'')+'GPT置顶，其余全屏隐藏',action:'fullscreen-except'},
+      ...(p.mode==='connected'?[{label:(p.windowMode==='gpt'?'✓ ':'')+'在GPT置顶，其余全屏隐藏',action:'fullscreen-except'}]:[]),
       {label:(p.windowMode==='normal'?'✓ ':'')+'普通显示',action:'fullscreen-never'}
     ]},{ label:'显示托盘图标',action:'show-tray' }];
     tools.push({ label: '查看额度 / 用量', action: 'show-balance' });

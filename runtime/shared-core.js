@@ -757,6 +757,8 @@ const MENU_CSS = [
 	".dsh-pet-menu-item{position:relative;display:flex;align-items:center;justify-content:space-between;",
 	"gap:14px;padding:5px 12px;border-radius:6px;white-space:nowrap;cursor:default}",
 	".dsh-pet-menu-item:hover{background:rgba(43,99,255,.14)}",
+	".dsh-pet-menu-item-emphasis{background:#dceffb;color:#164f72;font-weight:600;box-shadow:inset 0 0 0 1px #badcf0}",
+	".dsh-pet-menu-item-emphasis:hover{background:#c5e5f8}",
 	".dsh-pet-menu-item>span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis}",
 	".dsh-pet-menu-arrow{color:#9aa0a6;font-size:12px;flex:none}",
 	".dsh-pet-menu-size{width:224px;padding:8px 10px;cursor:default}",
@@ -858,6 +860,7 @@ function mountContextMenu(opts) {
 			}
 			const item = document.createElement("div");
 			item.className = "dsh-pet-menu-item";
+			if (node.emphasis) item.classList.add("dsh-pet-menu-item-emphasis");
 			if (isBranchNode(node)) {
 				item.classList.add("dsh-pet-menu-branch");
 				const label = document.createElement("span");

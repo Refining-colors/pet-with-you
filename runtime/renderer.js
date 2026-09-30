@@ -151,6 +151,7 @@ function applyPetPreferences(value,fromIPC=false){
       // Resume current activity without replaying a completion observed during recording.
       if(!value.disableEventResponse&&['success','error'].includes(s.latestWorkSnapshot?.state)&&!s.latestWorkSnapshot?.activeCount)s.latestWorkSnapshot={...s.latestWorkSnapshot,state:null,task:null,items:[]};
     }
+    if(value.disableThrow&&s.throwRef!==null){s.stopThrow();s.rememberSizePosition();s.sendBounds(s.pos.x,s.pos.y);}
     if(value.disableRoaming&&!s.moveManual)s.stopMove();if(changed)s.applyTaskFeedback();if(fromIPC)s.closeMenu();s.renderBubble();
   }
 }
