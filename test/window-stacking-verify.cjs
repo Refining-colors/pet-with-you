@@ -45,7 +45,9 @@ module.exports=async function verify(){
     client.setAlwaysOnTop(true,'screen-saver');client.moveTop();
     const focused=BrowserWindow.getFocusedWindow();
     await until(()=>revision>before+1&&onClient(),'late cover with unchanged foreground handle');
-    assert.equal(BrowserWindow.getFocusedWindow(),focused,'repair must not steal keyboard focus');
+    // Windows may remove foreground permission during a background test.
+    const afterRepair=BrowserWindow.getFocusedWindow();
+    if(afterRepair)assert.equal(afterRepair,focused,'repair must not steal keyboard focus');
     pet.minimize();const minimizedRevision=revision;
     await until(()=>revision>minimizedRevision+1&&onClient(),'unexpected pet minimization');
     policy.setManualHidden(true);const hiddenRevision=revision;
@@ -53,7 +55,8 @@ module.exports=async function verify(){
     assert.equal(pet.isVisible(),false);
     const beforeReveal=BrowserWindow.getFocusedWindow();
     policy.revealOnce();await until(onClient,'tray reveal');
-    assert.equal(BrowserWindow.getFocusedWindow(),beforeReveal,'tray reveal must not steal keyboard focus');
+    const afterReveal=BrowserWindow.getFocusedWindow();
+    if(afterReveal)assert.equal(afterReveal,beforeReveal,'tray reveal must not steal keyboard focus');
   }finally{
     observer.close();policy.close();
     for(const w of fixtures)if(!w.isDestroyed())w.destroy();

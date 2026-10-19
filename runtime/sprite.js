@@ -1405,7 +1405,7 @@ class PetSprite {
       const status=document.createElement('div');status.className='native-task-status';status.textContent=item.activity||names[item.state]||'处理中';
       row.append(title,status);card.append(row);
     }
-    if(items.length>3){const more=document.createElement('div');more.className='native-task-status';more.textContent='另有 '+(items.length-3)+' 个任务';card.append(more);}
+    if(items.length>3){const more=document.createElement('div');more.className='native-task-status native-task-more';more.textContent='另有 '+(items.length-3)+' 个任务';card.append(more);}
     this.bubble.append(card);
   }
 

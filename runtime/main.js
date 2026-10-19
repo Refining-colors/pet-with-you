@@ -153,7 +153,7 @@ if (process.platform === 'win32') {
 //
 // 取值时机是个麻烦：switch 必须在 app ready 之前设，而那时 screen 模块还不可用。
 // 所以首次启动 spawn 一个自己的探测子进程（DSH_PET_DPI_PROBE=1，只打印 scaleFactor 就退出，
-// ~0.5s）并把结果落盘；之后每次启动直接读缓存，零开销。
+// ~0.5s）并把结果落盘；每次启动重新探测，缓存仅作为探测失败时的回退。
 
 /** 主屏缩放缓存文件（userData 在 ready 前即可用） */
 function dpiCacheFile() {
@@ -225,7 +225,7 @@ let PRIMARY_SCALE = 0;
 /** 实际生效的强制缩放（0 = 未启用，坐标系维持修复前的逐屏 DIP） */
 let FORCED_SCALE = 0;
 if (!DPI_PROBE && process.env.DSH_PET_FORCE_DSF !== '0') {
-  PRIMARY_SCALE = readCachedPrimaryScale() || probePrimaryScale();
+  PRIMARY_SCALE = probePrimaryScale() || readCachedPrimaryScale();
   const override = Number(process.env.DSH_PET_FORCE_DSF);
   const forced = Number.isFinite(override) && override > 0 ? override : PRIMARY_SCALE > 0 ? 1 : 0;
   if (forced > 0) {

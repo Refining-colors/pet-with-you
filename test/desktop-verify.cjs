@@ -118,7 +118,7 @@ module.exports=async function verify({service,openSettings,getSettings,largeTray
     await settings.webContents.executeJavaScript(`document.querySelector('#skipClientLauncher').click()`);await sleep(250);
     assert.equal((await request('/client-launcher')).prompted,true);
     assert.equal(await settings.webContents.executeJavaScript(`document.querySelector('#clientLauncherDialog').open`),false);
-    const tabs=await settings.webContents.executeJavaScript(`(()=>{document.querySelector('#apiBaseUrl').value='https://draft.example/v1';selectTab('gpt');const nested=['createClientLauncher','followClientClose','chatSource','notify','queryAccount','clientPets'].every(id=>document.querySelector('#gptPanel').contains(document.getElementById(id)));selectTab('basic');return {nested,draft:document.querySelector('#apiBaseUrl').value};})()`);
+    const tabs=await settings.webContents.executeJavaScript(`(()=>{document.querySelector('#apiBaseUrl').value='https://draft.example/v1';selectTab('gpt');const nested=['createClientLauncher','followClientClose','chatSource','taskBasicFeedback','queryAccount','clientPets'].every(id=>document.querySelector('#gptPanel').contains(document.getElementById(id)));selectTab('basic');return {nested,draft:document.querySelector('#apiBaseUrl').value};})()`);
     console.error('VERIFY_STAGE: connection-ui-verify.cjs');
     await require('./connection-ui-verify.cjs')(settings);
     assert.deepEqual(tabs,{nested:true,draft:'https://draft.example/v1'});

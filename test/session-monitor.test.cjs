@@ -1,5 +1,31 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path');
 const {SessionMonitor,eventMetadata}=require('../session-monitor.cjs');
+test('opening a conversation with reasoning and tool history does not create an active task',async t=>{
+  const root=fs.mkdtempSync(path.join(os.tmpdir(),'pet-switch-'));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
+  const now=Date.now(),events=[],m=new SessionMonitor({root,clock:()=>now,onEvent:e=>events.push(e)});m.active=true;t.after(()=>m.close());
+  const record=(type,payload)=>JSON.stringify({timestamp:new Date(now).toISOString(),type,payload})+'\n';
+  fs.writeFileSync(path.join(root,'rollout-resume.jsonl'),record('session_meta',{id:'switch',source:'vscode'})+record('response_item',{type:'reasoning'})+record('response_item',{type:'function_call_output'}));
+  await m.poll();assert.deepEqual(events,[]);
+});
+test('late reasoning after completion stays closed but a real new turn is accepted',async t=>{
+  const root=fs.mkdtempSync(path.join(os.tmpdir(),'pet-late-reasoning-'));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
+  let now=Date.now();const events=[],m=new SessionMonitor({root,clock:()=>now,onEvent:e=>events.push(e)});m.active=true;t.after(()=>m.close());
+  const record=(type,payload)=>JSON.stringify({timestamp:new Date(now++).toISOString(),type,payload})+'\n';
+  const file=path.join(root,'rollout-test.jsonl');
+  fs.writeFileSync(file,record('session_meta',{id:'a',source:'vscode'})+record('event_msg',{type:'task_started',turn_id:'one'})+record('event_msg',{type:'task_complete',turn_id:'one'}));
+  await m.poll();const count=events.length;
+  fs.appendFileSync(file,record('response_item',{type:'reasoning'}));await m.poll();assert.equal(events.length,count);
+  fs.appendFileSync(file,record('event_msg',{type:'task_started',turn_id:'two'})+record('response_item',{type:'reasoning'}));await m.poll();
+  assert.equal(events.at(-1).turn_id,'two');assert.equal(events.at(-1).hook_event_name,'UserPromptSubmit');
+});
+test('startup history does not resurrect a completed task from a late tool result',async t=>{
+  const root=fs.mkdtempSync(path.join(os.tmpdir(),'pet-late-output-'));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
+  const now=Date.now(),events=[];
+  const record=(type,payload,age)=>JSON.stringify({timestamp:new Date(now-age).toISOString(),type,payload})+'\n';
+  fs.writeFileSync(path.join(root,'rollout-test.jsonl'),record('session_meta',{id:'fixture',source:'vscode'},30000)+record('event_msg',{type:'task_started'},25000)+record('event_msg',{type:'task_complete'},20000)+record('response_item',{type:'function_call_output'},1000));
+  const m=new SessionMonitor({root,clock:()=>now,onEvent:e=>events.push(e)});m.active=true;t.after(()=>m.close());
+  await m.poll();assert.deepEqual(events,[]);
+});
 test('connecting recovers recent completion without counting a new quota-triggering turn',async t=>{
   const root=fs.mkdtempSync(path.join(os.tmpdir(),'pet-history-'));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
   let now=Date.now();const tasks=new (require('../state.cjs').TaskState)(()=>now);
@@ -7,7 +33,7 @@ test('connecting recovers recent completion without counting a new quota-trigger
   const line=(event,at)=>JSON.stringify({timestamp:new Date(at).toISOString(),type:'event_msg',payload:{type:event}})+'\n';
   fs.writeFileSync(file,JSON.stringify({type:'session_meta',payload:{id:'history',source:'vscode'}})+'\n'+line('task_complete',now-2000));
   const monitor=new SessionMonitor({root,clock:()=>now,onEvent:e=>tasks.accept(e)});monitor.active=true;t.after(()=>monitor.close());
-  await monitor.poll();assert.equal(tasks.completedTurns,0);
+  await monitor.poll();assert.equal(tasks.completedTurns,0);assert.equal(tasks.snapshot().state,null);
   now++;fs.appendFileSync(file,line('task_started',now));await monitor.poll();
   now++;fs.appendFileSync(file,line('task_complete',now));await monitor.poll();assert.equal(tasks.completedTurns,1);
 });

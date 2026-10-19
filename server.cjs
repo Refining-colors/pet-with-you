@@ -16,7 +16,7 @@ const ROOT=__dirname;
 const MIME={'.webm':'video/webm','.mov':'video/quicktime','.png':'image/png','.ttf':'font/ttf','.otf':'font/otf','.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8'};
 const readJson=(p,fallback)=>{try{return JSON.parse(fs.readFileSync(p,'utf8'));}catch{return fallback;}};
 const writeJson=(p,v)=>{fs.writeFileSync(p+'.tmp',JSON.stringify(v,null,2));fs.renameSync(p+'.tmp',p);};
-async function startServer({dataDir,hooksAdapter={inspect:inspectConnection,install:installHooks},defaultMode='pet',monitorSessions=false,sessionRoot,onRuntimeInfo=()=>({development:false}),onClientLauncherStatus=()=>({configured:false}),onSettingsLocate=()=>{},onPetShortcut=async()=>({canceled:true}),onClientLauncher=async()=>({canceled:true}),onOpenThread=async()=>{throw new Error('无法打开对话');},onChange=()=>{},onPreferences=()=>{},onNotify=()=>{},onReview=()=>{},onChooseRuntime=async()=>({canceled:true}),onTray=()=>{},onFontImport=async()=>null,onLogsOpen=async()=>{throw new Error('目录打开功能不可用');},onLogsExport=async()=>{throw new Error('日志导出功能不可用');},protect,unprotect}){
+async function startServer({dataDir,hooksAdapter={inspect:inspectConnection,install:installHooks},defaultMode='pet',monitorSessions=false,sessionRoot,onRuntimeInfo=()=>({development:false}),onClientLauncherStatus=()=>({configured:false}),onSettingsLocate=()=>{},onPetShortcut=async()=>({canceled:true}),onClientLauncher=async()=>({canceled:true}),onOpenThread=async()=>{throw new Error('无法打开对话');},onChange=()=>{},onPreferences=()=>{},onReview=()=>{},onChooseRuntime=async()=>({canceled:true}),onTray=()=>{},onFontImport=async()=>null,onLogsOpen=async()=>{throw new Error('目录打开功能不可用');},onLogsExport=async()=>{throw new Error('日志导出功能不可用');},protect,unprotect}){
   fs.mkdirSync(dataDir,{recursive:true});fs.mkdirSync(path.join(dataDir,'pet'),{recursive:true});
   const settingsStore=new (require('./settings-store.cjs').SettingsStore)(dataDir);
   const paths={defaultFile:path.join(ROOT,'assets/config.jsonc'),userFile:settingsStore.file,petDir:path.join(dataDir,'pet'),settings:settingsStore};
@@ -53,9 +53,13 @@ async function startServer({dataDir,hooksAdapter={inspect:inspectConnection,inst
   const whisperHistory=new (require('./whisper-history.cjs').WhisperHistory)();
   let memory=readJson(memoryFile,{}),pendingChat=new Set(),whispers=new Map(),lastHook=null;
   const hookTimes=new Map();
+  const observedTasks=new Set();
   const monitor=new (require('./session-monitor.cjs').SessionMonitor)({root:sessionRoot,onEvent(event){
     if(!connected())return;
-    if(Date.now()-(hookTimes.get(event.session_id)||0)<5000){const current=tasks.sessions.get(event.session_id);if(current&&event.title&&current.title!==event.title){current.title=event.title;tasks.ts=Math.max(tasks.ts+1,Date.now());}return;}
+    if(monitor.metadata.isSubagent(event.session_id)){tasks.sessions.delete(event.session_id);observedTasks.delete(event.session_id);return;}
+    if(event.confirmedStart)observedTasks.add(event.session_id);
+    if(!observedTasks.has(event.session_id))return;
+    if(Date.now()-(hookTimes.get(event.session_id)||0)<5000&&!['Stop','Interrupt','SessionEnd'].includes(event.hook_event_name)){const current=tasks.sessions.get(event.session_id);if(current&&event.title&&current.title!==event.title){current.title=event.title;tasks.ts=Math.max(tasks.ts+1,Date.now());}return;}
     tasks.accept(event);
   },onError(e){diagnostics.record('connection-monitor',e,'monitor-failed');}});
   if(monitorSessions)monitor.setEnabled(connected());
@@ -159,7 +163,7 @@ async function startServer({dataDir,hooksAdapter={inspect:inspectConnection,inst
         if(req.method==='PUT'){
           const previous={...preferences.value};const before=previous.mode;const next=preferences.save(await body());
           if(previous.chatSource!==next.chatSource||previous.chatSourceChosen!==next.chatSourceChosen){modeEpoch++;whispers.clear();client.close();apiClient.close();}
-          if(before!==next.mode){modeEpoch++;connectionCheck.invalidate();rateCache=null;rateAt=0;tasks.sessions.clear();tasks.ts=Date.now();lastHook=null;whispers.clear();client.close();apiClient.close();}
+          if(before!==next.mode){modeEpoch++;connectionCheck.invalidate();rateCache=null;rateAt=0;tasks.sessions.clear();tasks.turns.clear();tasks.completedSessions.clear();observedTasks.clear();hookTimes.clear();tasks.ts=Date.now();lastHook=null;whispers.clear();client.close();apiClient.close();}
           try{await onPreferences(next,before!==next.mode||previous.chatSource!==next.chatSource||previous.chatSourceChosen!==next.chatSourceChosen);}catch(e){preferences.save(previous);try{await onPreferences(previous,true);}catch{}throw e;}
           if(monitorSessions)monitor.setEnabled(connected());
           return json(publicPreferences());
@@ -254,12 +258,28 @@ async function startServer({dataDir,hooksAdapter={inspect:inspectConnection,inst
         return json(config);
       }
       if(route==='/hook'&&req.method==='POST'){
-        const event=await body();if(!connected())return json({ok:false,disabled:true});const accepted=tasks.accept(event);
-        if(accepted){hookTimes.set(event.session_id,Date.now());if(hookTimes.size>200)hookTimes.delete(hookTimes.keys().next().value);lastHook={event:event.hook_event_name,at:Date.now()};if(!preferences.value.disableEventResponse&&config.main.notificationsEnabled&&['Stop','PermissionRequest'].includes(event.hook_event_name))onNotify(event.hook_event_name==='Stop'?'任务回合结束':'任务需要你确认');}
+        const event=await body();if(!connected())return json({ok:false,disabled:true});
+        if(typeof event.session_id==='string'&&monitor.metadata.isSubagent(event.session_id)){
+          tasks.sessions.delete(event.session_id);observedTasks.delete(event.session_id);
+          return json({ok:false,ignored:true});
+        }
+        // Tool/compaction hooks also run outside user turns; they cannot create tasks.
+        if(event.hook_event_name==='UserPromptSubmit'&&typeof event.session_id==='string')observedTasks.add(event.session_id);
+        if(!observedTasks.has(event.session_id))return json({ok:false,ignored:true});
+        if(typeof event.session_id==='string')event.title=monitor.metadata.title(event.session_id);
+        const accepted=tasks.accept(event);
+        if(accepted){hookTimes.set(event.session_id,Date.now());if(hookTimes.size>200)hookTimes.delete(hookTimes.keys().next().value);lastHook={event:event.hook_event_name,at:Date.now()};}
         return json({ok:accepted});
       }
       if(route==='/work/open'&&req.method==='POST'){const value=await body();if(!connected()||!tasks.sessions.has(value.id)||!/^[-a-f0-9]{36}$/i.test(value.id))throw new Error('该对话已不在当前任务列表中');await onOpenThread(value.id);return json({ok:true});}
-      if(route==='/work-status')return json(connected()?tasks.snapshot():{state:null,task:null,ts:Date.now()});
+      if(route==='/work-status'){
+        if(connected())for(const [id,current] of tasks.sessions){
+          if(monitor.metadata.isSubagent(id)){tasks.sessions.delete(id);observedTasks.delete(id);tasks.ts=Math.max(tasks.ts+1,Date.now());continue;}
+          const title=monitor.metadata.title(id);
+          if(title&&title!==current.title){current.title=title;tasks.ts=Math.max(tasks.ts+1,Date.now());}
+        }
+        return json(connected()?tasks.snapshot():{state:null,task:null,ts:Date.now()});
+      }
       if(route==='/balance'){
         if(url.searchParams.has('round')&&preferences.value.disableEventResponse)return json({ok:false,ignored:true,reason:'disabled',provider:'额度查询',message:'事件响应已关闭'});
         const round=Number(url.searchParams.get('round'));

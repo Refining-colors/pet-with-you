@@ -51,9 +51,9 @@ test('packaged hooks use the bundled command helper, while source hooks use the 
   const { hookCommand } = require('../hook-command.cjs');
   const installed = hookCommand({ root: path.join('space path', 'resources', 'app'), packaged: true });
   assert.match(installed.marker, /resources\/app\/hook\.cmd$/);
-  assert.equal(installed.command, '"' + installed.marker + '"');
+  assert.ok(require('../hook-command.cjs').ownsHook(installed.command, path.join('space path', 'resources', 'app')));
   const source = hookCommand({ root, packaged: false, executable: 'C:/fixture node/node.exe' });
-  assert.ok(source.command.startsWith('"C:/fixture node/node.exe" '));
+  assert.ok(Buffer.from(source.command.split(' ').at(-1),'base64').toString('utf16le').includes("& 'C:/fixture node/node.exe'"));
   assert.match(source.marker, /hook\.cjs$/);
 });
 

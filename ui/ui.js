@@ -53,10 +53,10 @@ function render(){
   if(main.pets.some(p=>p.id===historyPet))$('#whisperHistoryPet').value=historyPet;
   $('#categories').replaceChildren();
   for(const c of main.animations.categories){const i=inputLabel($('#categories'),c.id+' 权重','number',c.weight,v=>c.weight=v);i.min=0;i.max=100;}
-  $('#collision').checked=main.physics.petCollision;$('#notify').checked=main.notificationsEnabled;$('#interval').value=$('#apiWhisperInterval').value=main.eventsRefreshSec.whisper;$('#advanced').value=JSON.stringify(main,null,2);
+  $('#collision').checked=main.physics.petCollision;$('#interval').value=$('#apiWhisperInterval').value=main.eventsRefreshSec.whisper;$('#advanced').value=JSON.stringify(main,null,2);
 }
 async function save(value){$('#save').disabled=true;$('#result').textContent='正在保存…';try{const r=await fetch(base+'/config',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(value)});const j=await r.json();if(!r.ok)throw new Error(j.error||j.message);main=j.main;render();$('#result').textContent='已保存，宠物窗口已更新';}catch(e){$('#result').textContent=e.message;}finally{$('#save').disabled=false;}}
-$('#save').onclick=()=>{main.physics.petCollision=$('#collision').checked;main.notificationsEnabled=$('#notify').checked;main.eventsRefreshSec.whisper=Math.max(60,Number($('#interval').value)||300);save(main);};
+$('#save').onclick=()=>{main.physics.petCollision=$('#collision').checked;main.eventsRefreshSec.whisper=Math.max(60,Number($('#interval').value)||300);save(main);};
 $('#saveAdvanced').onclick=()=>{try{save(JSON.parse($('#advanced').value));}catch(e){$('#result').textContent=e.message;}};
 $('#add').onclick=()=>{if(main.pets.length>=6)return;main.pets.push({...structuredClone(main.pets[0]),id:'pet-'+Date.now(),name:'蓝毛伙伴 '+(main.pets.length+1),whisperEnabled:false,position:{corner:'bottom-right',marginX:80+main.pets.length*100,marginY:30}});render();};
 async function status(){try{
@@ -233,7 +233,7 @@ $('#openProxySettings').onclick=()=>{selectTab('basic');$('#proxyDetails').open=
 $('#clientCredential').onchange=()=>{$('#credential').value=$('#clientCredential').value;updateCredentialFields();};
 $('#credential').onchange=()=>{$('#clientCredential').value=$('#credential').value;updateCredentialFields();};
 $('#saveClientLifecycle').onclick=async()=>{try{await api('/preferences','PUT',{followClientClose:$('#followClientClose').checked});$('#clientLifecycleResult').textContent='已保存。';}catch(e){$('#clientLifecycleResult').textContent=e.message;}};
-$('#saveClientPets').onclick=async()=>{main.notificationsEnabled=$('#notify').checked;await save(main);$('#clientPetsResult').textContent=$('#result').textContent;};
+$('#saveClientPets').onclick=async()=>{await save(main);$('#clientPetsResult').textContent=$('#result').textContent;};
 function fillProxyProfiles(items){savedProxyProfiles=items;const select=$('#proxyProfiles'),previous=select.value;select.replaceChildren();for(const p of items){const option=text('option',p.name);option.value=p.id;select.append(option);}if(items.some(p=>p.id===previous))select.value=previous;$('#loadProxyProfile').disabled=$('#deleteProxyProfile').disabled=!items.length;showProfileSummary('proxy');}
 $('#saveProxyProfile').onclick=async()=>{try{const name=$('#proxyProfileName').value.trim();if(!name)throw new Error('请填写查询配置名称');await saveCurrentQuota();fillProxyProfiles(await api('/quota/profiles','POST',{name}));$('#quotaResult').textContent='查询配置已保存到列表：'+name;}catch(e){$('#quotaResult').textContent=e.message;}};
 $('#loadProxyProfile').onclick=async()=>{try{fillQuota(await api('/quota/profiles/load','POST',{id:$('#proxyProfiles').value}));$('#proxyProfileName').value=$('#proxyProfiles').selectedOptions[0]?.textContent||'';$('#quotaResult').textContent='查询配置已载入并应用。';}catch(e){$('#quotaResult').textContent=e.message;}};

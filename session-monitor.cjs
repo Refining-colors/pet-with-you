@@ -10,7 +10,7 @@ function eventMetadata(record){
     else if(['function_call_output','custom_tool_call_output'].includes(p.type))event='PostToolUse';
     else if(p.type==='reasoning')event='UserPromptSubmit';
   }
-  return event?{hook_event_name:event,at,...(tool?{tool_name:tool}:{})}:null;
+  return event?{hook_event_name:event,at,...(typeof p.turn_id==='string'?{turn_id:p.turn_id}:{}),...(record.type==='response_item'?{inferred:true}:{}),...(tool?{tool_name:tool}:{})}:null;
 }
 class SessionMonitor{
   constructor({root=path.join(process.env.CODEX_HOME||path.join(os.homedir(),'.codex'),'sessions'),onEvent,onError=()=>{},clock=Date.now}){
@@ -32,8 +32,9 @@ class SessionMonitor{
         const head=Buffer.alloc(65536),r=await handle.read(head,0,head.length,0);
         let meta;try{meta=JSON.parse(head.subarray(0,r.bytesRead).toString('utf8').split('\n')[0]);}catch{return null;}
         const p=meta.payload||{};
+        if(p.source&&typeof p.source==='object'&&p.source.subagent)return null;
         if(meta.type!=='session_meta'||typeof p.id!=='string'||!(p.source==='vscode'||/desktop/i.test(p.originator||'')))return null;
-        state={id:p.id,offset:Math.max(0,stat.size-MAX_READ),carry:Buffer.alloc(0),lastAt:0,ended:false};
+        state={id:p.id,offset:Math.max(0,stat.size-MAX_READ),carry:Buffer.alloc(0),lastAt:0,ended:false,started:false};
       }
       if(stat.size<state.offset){state.offset=0;state.carry=Buffer.alloc(0);}
       const start=state.offset,length=Math.min(MAX_READ,stat.size-start);if(!length)return state;
@@ -44,13 +45,20 @@ class SessionMonitor{
       if(end<0)return state;
       let latest;
       for(const line of data.subarray(0,end).toString('utf8').split('\n')){
-        try{const e=eventMetadata(JSON.parse(line));if(e&&e.at>=state.lastAt){state.lastAt=e.at;latest=e;}}catch{}
+        try{const e=eventMetadata(JSON.parse(line));if(e&&e.at>=state.lastAt){
+          // Tool output written after completion is not a newly active task.
+          if(e.inferred&&(state.ended||!state.started))continue;
+          if(e.hook_event_name==='UserPromptSubmit'&&!e.inferred){state.turn=e.turn_id||'';state.started=true;}
+          if(!e.turn_id&&state.turn)e.turn_id=state.turn;
+          state.ended=['Stop','Interrupt'].includes(e.hook_event_name);
+          state.lastAt=e.at;latest=e;
+        }}catch{}
       }
       if(latest){
         state.ended=['Stop','Interrupt'].includes(latest.hook_event_name);
         const age=this.clock()-latest.at;
         // A completion recovered on connection is display history, not a new turn.
-        if(age>=-60000&&age<(state.ended?12000:900000))state.event={session_id:state.id,...latest,recovered:fresh&&state.ended&&latest.at<this.activatedAt};
+        if(age>=-60000&&age<(state.ended?12000:900000))state.event={session_id:state.id,...latest,confirmedStart:state.started,recovered:fresh&&state.ended&&latest.at<this.activatedAt};
       }
       return state;
     }finally{await handle.close();}

@@ -21,6 +21,7 @@ test('round-end requests refresh cached usage and coalesce requests from multipl
   let calls=0;service.client.limits=async()=>{const count=++calls;await new Promise(r=>setTimeout(r,15));return {rateLimits:{primary:{usedPercent:count,windowDurationMins:60}}};};
   await request('/balance');assert.equal(calls,1);
   await request('/preferences',{quotaAfterTurn:true});
+  await request('/hook',{session_id:'a',hook_event_name:'UserPromptSubmit'},'POST');
   await request('/hook',{session_id:'a',hook_event_name:'Stop'},'POST');
   const replies=await Promise.all([request('/balance?round=1'),request('/balance?round=1'),request('/balance?round=1')]);
   assert.equal(calls,2);for(const value of replies)assert.equal(value.windows[0].percent,2);
@@ -44,5 +45,6 @@ test('event mute suppresses notifications and automatic queries but preserves tr
   assert.equal(notifications,0);assert.equal((await request('/work-status')).completedTurns,1);
   assert.equal((await request('/balance?round=1')).reason,'disabled');assert.equal(queries,0);
   assert.equal((await request('/balance')).ok,true);assert.equal(queries,1);
-  await request('/preferences',{disableEventResponse:false});await request('/hook',{session_id:'a',hook_event_name:'PermissionRequest'},'POST');assert.equal(notifications,1);
+  await request('/preferences',{disableEventResponse:false});await request('/hook',{session_id:'a',hook_event_name:'PermissionRequest'},'POST');assert.equal(notifications,0);
+  await request('/hook',{session_id:'a',hook_event_name:'Stop'},'POST');assert.equal(notifications,0);
 });

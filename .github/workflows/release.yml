@@ -5,7 +5,7 @@ on:
       tag:
         description: Existing version tag to build
         required: true
-        default: v1.0.1
+        default: v1.0.2
 permissions:
   contents: write
 concurrency:
@@ -78,6 +78,19 @@ jobs:
           if ($petOldHash -ne '47c3c9cb2739f7a2ac6091abaa518f004929c457474b24dfcbb2517774495196') { throw 'Previous installer checksum mismatch.' }
           powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-installer.ps1 -PreviousInstaller $petOldInstaller
           if ($LASTEXITCODE -ne 0) { throw 'Stable upgrade verification failed.' }
+      - name: Verify upgrade from stable 1.0.1
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $petOldFolder = Join-Path $env:RUNNER_TEMP 'pet-stable-1.0.1'
+          gh release download v1.0.1 --repo Refining-colors/pet-with-you --pattern pet-with-you-1.0.1-x64-setup.exe --dir $petOldFolder
+          if ($LASTEXITCODE -ne 0) { throw 'Previous installer download failed.' }
+          $petOldInstaller = Join-Path $petOldFolder 'pet-with-you-1.0.1-x64-setup.exe'
+          $petOldHash = (Get-FileHash -LiteralPath $petOldInstaller -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($petOldHash -ne '0e615ba2c045579559a4d2f74d7e75fad3cf1fc68a067488d27eb466932bffab') { throw 'Previous installer checksum mismatch.' }
+          powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-installer.ps1 -PreviousInstaller $petOldInstaller
+          if ($LASTEXITCODE -ne 0) { throw 'Stable 1.0.1 upgrade verification failed.' }
       - name: Prepare checksums and installation guide
         shell: pwsh
         run: |

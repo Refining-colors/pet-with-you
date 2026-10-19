@@ -47,6 +47,7 @@ test('pure mode supports independent chat and whisper without starting Codex, cl
   await call('/preferences',{chatSource:'gpt',chatSourceChosen:true});
   assert.equal((await call('/whisper')).reply,'gpt reply');
   assert.equal((await fetch(service.base+'/chat',{method:'POST',body:JSON.stringify({text:'hello'})}).then(r=>r.json())).reply,'gpt reply');
+  await fetch(service.base+'/hook',{method:'POST',body:JSON.stringify({session_id:'fixture',hook_event_name:'UserPromptSubmit'})});
   await fetch(service.base+'/hook',{method:'POST',body:JSON.stringify({session_id:'fixture',hook_event_name:'PermissionRequest'})});
   assert.equal((await call('/work-status')).state,'waiting');
   await call('/preferences',{mode:'pet'});await call('/preferences',{mode:'connected'});

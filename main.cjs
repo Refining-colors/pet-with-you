@@ -1,4 +1,4 @@
-const { app, Tray, nativeImage, BrowserWindow, Notification, shell, safeStorage, dialog } = require('electron');
+const { app, Tray, nativeImage, BrowserWindow, shell, safeStorage, dialog } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
 const nodeArgument=process.argv.find(value=>value.startsWith('--pet-node-exe='));
@@ -61,7 +61,7 @@ if(!app.requestSingleInstanceLock()){app.quit();}else{
   function setTrayVisible(value){
     trayVisible=value;
     settingsStore.set('tray',{visible:value});
-    if(value){if(!tray||tray.isDestroyed()){tray=new Tray(nativeImage.createFromPath(path.join(__dirname,'tray.png')).resize({width:24,height:24}));tray.on('click',revealPet);tray.on('double-click',openSettings);tray.on('right-click',()=>largeTrayMenu.show());}tray.setToolTip(PRODUCT_NAME+(developmentPreview?' · 开发预览':'')+' · 随机播放 / 右键点播');}
+    if(value){if(!tray||tray.isDestroyed()){tray=new Tray(path.join(__dirname,'build','icon.ico'));tray.on('click',revealPet);tray.on('double-click',openSettings);tray.on('right-click',()=>largeTrayMenu.show());}tray.setToolTip(PRODUCT_NAME+(developmentPreview?' · 开发预览':'')+' · 随机播放 / 右键点播');}
     else if(tray&&!tray.isDestroyed()){tray.destroy();tray=null;}
   }
   function revealPet(){startPets();policy?.revealOnce();}
@@ -137,7 +137,7 @@ if(!app.requestSingleInstanceLock()){app.quit();}else{
     policy?.apply();
     for(const w of BrowserWindow.getAllWindows())if(w!==settings&&!w.isDestroyed())w.webContents.send('pet:preferences',next);
     largeTrayMenu.close();
-  },onChooseRuntime:async()=>{const r=await dialog.showOpenDialog({properties:['openFile'],filters:[{name:'Codex',extensions:['exe']}]});if(r.canceled)return {canceled:true};require('./codex-client.cjs').saveRuntime(r.filePaths[0]);return {ok:true};},onReview:reviewHooks,onTray:value=>setTrayVisible(value),onFontImport:async()=>{const r=await dialog.showOpenDialog({properties:['openFile'],filters:[{name:'字体文件',extensions:['ttf','otf']}]});return r.canceled?null:r.filePaths[0];},protect(value){if(!safeStorage.isEncryptionAvailable())throw new Error('系统密钥保护不可用');return safeStorage.encryptString(value).toString('base64');},unprotect(value){return safeStorage.decryptString(Buffer.from(value,'base64'));},onNotify(text){if(!BrowserWindow.getFocusedWindow()&&Notification.isSupported())new Notification({title:PRODUCT_NAME,body:text}).show();}}).then(s=>{
+  },onChooseRuntime:async()=>{const r=await dialog.showOpenDialog({properties:['openFile'],filters:[{name:'Codex',extensions:['exe']}]});if(r.canceled)return {canceled:true};require('./codex-client.cjs').saveRuntime(r.filePaths[0]);return {ok:true};},onReview:reviewHooks,onTray:value=>setTrayVisible(value),onFontImport:async()=>{const r=await dialog.showOpenDialog({properties:['openFile'],filters:[{name:'字体文件',extensions:['ttf','otf']}]});return r.canceled?null:r.filePaths[0];},protect(value){if(!safeStorage.isEncryptionAvailable())throw new Error('系统密钥保护不可用');return safeStorage.encryptString(value).toString('base64');},unprotect(value){return safeStorage.decryptString(Buffer.from(value,'base64'));}}).then(s=>{
     service=s;
     process.env.DSH_PET_CONFIG_URL=s.base+'/config';
     process.env.DSH_PET_PETS=JSON.stringify(Object.values(s.config).flatMap(c=>c.pets).filter(p=>['desktop','both'].includes(p.display)));

@@ -4,7 +4,7 @@
 
 一个运行在 Windows 桌面上的动画桌宠：可以随机玩耍、手动点播、聊天与碎碎念，也可以连接 Codex 桌面客户端，展示任务进度和账户额度。
 
-> `1.0.1` Windows 版：[下载安装程序](https://github.com/Refining-colors/pet-with-you/releases/tag/v1.0.1)。纯桌宠无需另装 Node.js、Git 或 Codex CLI。由 [Refining-colors](https://github.com/Refining-colors) 维护。项目代码采用 MIT，角色动画按原作条款说明。
+> `1.0.2` Windows 版：[下载安装程序](https://github.com/Refining-colors/pet-with-you/releases/tag/v1.0.2)。纯桌宠无需另装 Node.js、Git 或 Codex CLI。由 [Refining-colors](https://github.com/Refining-colors) 维护。项目代码采用 MIT，角色动画按原作条款说明。
 
 基于 [PC2005-cloud/dsh-pet](https://github.com/PC2005-cloud/dsh-pet) 改造与扩展，保留原作角色和 106 段动画。原作代码、素材与本项目适配工作的关系见 [来源与致谢](ATTRIBUTION.md)。
 
@@ -54,7 +54,7 @@
 - 展示思考、执行工具、整理结果、等待确认、出错和回合完成等已观测到的状态。
 - 基础动画反馈与原生风格任务卡可分别开关；同时启用时任务卡显示在上方。
 - 多任务按优先级展示，最多列出三个任务，更多任务显示数量；已识别的对话标题可点击打开。
-- 提供“关闭事件响应”开关，演示或录屏时暂停任务动画、任务气泡、任务通知和回合结束自动额度查询。
+- 提供“关闭事件响应”开关，演示或录屏时暂停任务动画、任务气泡和回合结束自动额度查询。
 - 首次连接询问是否创建 **Codex withu** 联动启动器，可自选目录，双击同时打开客户端与桌宠；无需常驻启动检测。随客户端关闭和开机自启动仍分别设置。
 
 ### 额度与设置
@@ -73,7 +73,7 @@
 
 ### 推荐：下载安装版
 
-1. 打开 [Releases 下载页](https://github.com/Refining-colors/pet-with-you/releases/tag/v1.0.1)，下载 **pet-with-you-1.0.1-x64-setup.exe**。
+1. 打开 [Releases 下载页](https://github.com/Refining-colors/pet-with-you/releases/tag/v1.0.2)，下载 **pet-with-you-1.0.2-x64-setup.exe**。
 2. 双击安装，选择目录和是否创建桌面快捷方式。
 3. 从桌面或开始菜单中的 **pet-with-u** 启动，默认纯桌宠；右键打开设置。
 

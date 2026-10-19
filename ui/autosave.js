@@ -7,13 +7,13 @@
   const preferenceIds=['disableEventResponse','windowMode','clickAction','actionSpeed','autostart','snapMode','followClientClose','replySeconds','quotaAfterTurn','quotaMode','quotaSeconds','chatSource','autoWhisperProbability','disableRoaming','disableThrow','disableEdgeBounce','ignoreAccountTimeouts','taskBasicFeedback','taskNativeFeedback','whisperStreaming','gptFastReply'];
   const apiIds=['apiProfileName','apiBaseUrl','apiModel','apiKey'];
   const proxyIds=['proxyProfileName','proxyName','proxyEndpoint','credential','envName','proxyKey','authHeader','bearer','quotaFormat','valuePath','totalPath','quotaScale','quotaUnit','clientCredential'];
-  const configSelector='#pets input,#clientPets input,#categories input,[data-whisper-pet],#collision,#notify,#interval,#apiWhisperInterval';
+  const configSelector='#pets input,#clientPets input,#categories input,[data-whisper-pet],#collision,#interval,#apiWhisperInterval';
   const mark=key=>{dirty.add(key);status.textContent='有修改待应用，关闭设置时会自动保存。';status.classList.remove('save-error');};
   function changed(event){
     const input=event.target,id=input.id;
     if(input.matches(configSelector)){
       if(id==='collision')main.physics.petCollision=input.checked;
-      if(id==='notify')main.notificationsEnabled=input.checked;
+
       if(id==='interval'||id==='apiWhisperInterval')main.eventsRefreshSec.whisper=Number(input.value);
       dirty.delete('advanced');mark('config');
     }else if(id==='advanced'){menuSizeUpdates.clear();dirty.delete('config');mark('advanced');}
@@ -82,7 +82,7 @@
         }else{
           value=structuredClone(main);
           value.eventsRefreshSec.whisper=number('interval',60,86400);
-          value.physics.petCollision=$('#collision').checked;value.notificationsEnabled=$('#notify').checked;
+          value.physics.petCollision=$('#collision').checked;
         }
         for(const pet of value.pets||[])if(menuSizeUpdates.has(pet.id))pet.size=menuSizeUpdates.get(pet.id);
         plan.push({keys:['config','advanced'],run:async()=>{const saved=await api('/config','PUT',value);main=saved.main;menuSizeUpdates.clear();}});

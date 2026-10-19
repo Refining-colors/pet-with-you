@@ -36,6 +36,7 @@ test('multi-session status priority, interrupted removal, terminal expiry',()=>{
   now++;s.accept({session_id:'a',hook_event_name:'Stop'});assert.equal(s.snapshot().state,'success');
   now+=13000;assert.equal(s.snapshot().state,null);
   assert.equal(s.accept({session_id:'a',hook_event_name:'Unknown'}),false);
+  s.accept({session_id:'a',hook_event_name:'UserPromptSubmit'});
   s.accept({session_id:'a',hook_event_name:'PreToolUse'});now+=660000;
   assert.equal(s.snapshot().state,'working');
   s.accept({session_id:'a',hook_event_name:'PostToolUse',tool_failed:true});
@@ -54,6 +55,7 @@ test('companion serves all configured animations and protects mutations',async t
   assert.equal((await fetch(base+'/config',{method:'PUT',headers:{Origin:'https://example.com','Content-Type':'application/json'},body:'{}'})).status,403);
   assert.equal((await fetch(base.replace(/\/[a-f0-9]{48}\//,'/wrong/')+'/config')).status,404);
   assert.equal((await fetch(base+'/pic/%2e%2e%2fpackage.json')).status,404);
+  await fetch(base+'/hook',{method:'POST',body:JSON.stringify({session_id:'test',hook_event_name:'UserPromptSubmit'})});
   let r=await fetch(base+'/hook',{method:'POST',body:JSON.stringify({session_id:'test',hook_event_name:'PermissionRequest'})});assert.equal((await r.json()).ok,true);
   assert.equal((await(await fetch(base+'/work-status')).json()).state,'waiting');
   const next=structuredClone(config.main);next.pets[0].size=500;next.animations.categories[0].weight=0;

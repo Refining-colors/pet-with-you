@@ -80,7 +80,8 @@ async function run(program, args, options = {}, input) {
     await new Promise(resolve => mock.listen(0, '127.0.0.1', resolve));
     fs.writeFileSync(path.join(data, 'connection.json'), JSON.stringify({ base: 'http://127.0.0.1:' + mock.address().port + '/fixture', pid: process.pid }));
     const payload = { session_id: 'fixture', hook_event_name: 'PostToolUse', tool_name: 'shell', tool_response: { exit_code: 1, private_output: 'must-not-forward' }, prompt: 'must-not-forward' };
-    await run(process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', '""' + path.join(root, 'hook.cmd') + '""'], { windowsVerbatimArguments: true }, JSON.stringify(payload));
+    const registeredCommand = require(path.join(root, 'hook-command.cjs')).hookCommand({root,packaged:true}).command;
+    assert.equal(await run('powershell.exe', ['-NoProfile','-NonInteractive','-Command',registeredCommand], {}, JSON.stringify(payload)), '');
     assert.equal(event?.tool_failed, true); assert.equal(event?.session_id, 'fixture');
     assert.equal(JSON.stringify(event).includes('must-not-forward'), false);
     const hooksFile = path.join(env.CODEX_HOME, 'hooks.json');
@@ -90,7 +91,7 @@ async function run(program, args, options = {}, input) {
     await run(executable, [path.join(root, 'install-hooks.cjs')], nodeMode);
     const installed = JSON.parse(fs.readFileSync(hooksFile)).hooks;
     const commands = Object.values(installed).flatMap(groups => groups.flatMap(g => g.hooks)).map(h => h.command);
-    assert.equal(commands.filter(c => c.endsWith('/hook.cmd"')).length, 9);
+    assert.equal(commands.filter(c => c === registeredCommand).length, 9);
     await run(executable, [path.join(root, 'uninstall-hooks.cjs')], nodeMode);
     assert.deepEqual(JSON.parse(fs.readFileSync(hooksFile)), { hooks: { Stop: [unrelated] } });
     console.log('PASS: unified settings, packaged startup, 106 animations, DPI, joint launcher, no external Node, hooks and metadata privacy.');
