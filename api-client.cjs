@@ -6,7 +6,7 @@ const normalizeBase=(value,{allowHttp=false}={})=>{
   return u.href.replace(/\/+$/,'');
 };
 class ApiSettings{
-  constructor(dir,{protect,unprotect}={}){this.store=new (require('./settings-store.cjs').SettingsStore)(dir);this.file=this.store.file;this.protect=protect;this.unprotect=unprotect;const r=this.store.get('api',{baseUrl:'https://api.openai.com/v1',model:'gpt-4o-mini'});const allowHttp=r.allowHttp===true;this.value={baseUrl:r.baseUrl?normalizeBase(r.baseUrl,{allowHttp}):'',model:String(r.model||'').slice(0,120),secret:r.secret||'',profileName:String(r.profileName||'').slice(0,80),allowHttp};if(!this.store.has('api'))this.store.set('api',this.value);}
+  constructor(dir,{protect,unprotect}={}){this.store=new (require('./settings-store.cjs').SettingsStore)(dir);this.file=this.store.file;this.protect=protect;this.unprotect=unprotect;const r=this.store.get('api',{baseUrl:'https://api.openai.com/v1',model:'gpt-4o-mini'});const allowHttp=r.allowHttp===true||(r.allowHttp===undefined&&/^http:/i.test(String(r.baseUrl||'')));this.value={baseUrl:r.baseUrl?normalizeBase(r.baseUrl,{allowHttp}):'',model:String(r.model||'').slice(0,120),secret:r.secret||'',profileName:String(r.profileName||'').slice(0,80),allowHttp};if(!this.store.has('api'))this.store.set('api',this.value);}
   publicValue(){return {profileName:this.value.profileName||'',baseUrl:this.value.baseUrl,model:this.value.model,configured:!!this.value.secret,allowHttp:!!this.value.allowHttp};}
   clear(){
     const next={baseUrl:'',model:'',secret:'',profileName:'',allowHttp:false};

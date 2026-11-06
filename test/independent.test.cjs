@@ -79,6 +79,11 @@ test('explicitly allowed plaintext HTTP survives restart and profile round-trip'
   const loaded=new ApiSettings(dir,{protect,unprotect});loaded.loadProfile(profile.id);
   assert.equal(loaded.publicValue().baseUrl,'http://203.0.113.9:3011/v1');assert.equal(loaded.publicValue().allowHttp,true);assert.equal(loaded.key(),'private-fixture-key');
   assert.throws(()=>loaded.save({baseUrl:'http://203.0.113.9:3011/v1',model:'fixture'}),/允许明文 HTTP/);
+  const legacy=fs.mkdtempSync(path.join(os.tmpdir(),'pet-api-legacy-'));t.after(()=>fs.rmSync(legacy,{recursive:true,force:true}));
+  fs.writeFileSync(path.join(legacy,'settings.json'),JSON.stringify({schemaVersion:1,sections:{api:{baseUrl:'http://203.0.113.9:3011/v1',model:'fixture'}}}));
+  const upgraded=new ApiSettings(legacy,{protect,unprotect});
+  assert.equal(upgraded.publicValue().baseUrl,'http://203.0.113.9:3011/v1');
+  assert.equal(upgraded.publicValue().allowHttp,true,'手写/旧版设置里的远程 http 地址不应让启动失败');
 });
 test('snap respects separate screens, gaps and full animation canvas, keeps horizontal position',()=>{
   const target={id:'work',x:-1920,y:1040,width:1920,top:0};
