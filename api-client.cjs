@@ -63,7 +63,8 @@ class ApiClient{
         throw issue(status===401?'authentication':status===403?'permission':status===429?'rate-limit':status>=500?'upstream':missingModel?'model-not-found':status===404?'endpoint':'bad-request',status);
       }
       if(readError)throw readError;
-      const text=data?.choices?.[0]?.message?.content;
+      const raw=data?.choices?.[0]?.message?.content;
+      const text=typeof raw==='string'?require('./think-filter.cjs').stripThink(raw):undefined;
       if(typeof text!=='string'||!text.trim())throw issue('empty-reply');
       return text.trim();
     }finally{this.controllers.delete(controller);}
