@@ -8,6 +8,8 @@ const protect=v=>Buffer.from(v).toString('base64'),unprotect=v=>Buffer.from(v,'b
 test('API allows IPv4 and IPv6 loopback HTTP but requires HTTPS for remote hosts',()=>{
   for(const host of ['localhost','127.0.0.1','[::1]'])assert.equal(normalizeBase('http://'+host+':1234/v1/'),'http://'+host+':1234/v1');
   for(const host of ['example.test','192.168.1.20','[2001:db8::1]'])assert.throws(()=>normalizeBase('http://'+host+'/v1'),/HTTPS/);
+  assert.equal(normalizeBase('http://example.test:3011/v1',{allowHttp:true}),'http://example.test:3011/v1');
+  assert.throws(()=>normalizeBase('http://example.test/v1'),/允许明文 HTTP/);
 });
 test('API transport uses configured endpoint and model, rejects redirects and never returns secret',async t=>{
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'pet-api-'));t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));
@@ -61,10 +63,22 @@ test('API profiles persist encrypted, can load and delete, and clearing current 
   const [profile]=settings.saveProfile('Daily');assert.equal(profile.name,'Daily');
   assert.ok(!JSON.stringify(settings.profiles()).includes('private-fixture-key'));
   assert.ok(!fs.readFileSync(settings.file,'utf8').includes('private-fixture-key'));
-  settings.clear();const reopened=new ApiSettings(dir,{protect,unprotect});assert.deepEqual(reopened.publicValue(),{profileName:'',baseUrl:'',model:'',configured:false});
+  settings.clear();const reopened=new ApiSettings(dir,{protect,unprotect});assert.deepEqual(reopened.publicValue(),{profileName:'',baseUrl:'',model:'',configured:false,allowHttp:false});
   reopened.loadProfile(profile.id);assert.equal(reopened.key(),'private-fixture-key');
   reopened.deleteProfile(profile.id);assert.deepEqual(reopened.profiles(),[]);assert.equal(reopened.publicValue().configured,true);
   reopened.clear();assert.equal(reopened.key(),null);
+});
+test('explicitly allowed plaintext HTTP survives restart and profile round-trip',t=>{
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'pet-api-http-'));t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));
+  const settings=new ApiSettings(dir,{protect,unprotect});
+  assert.throws(()=>settings.save({baseUrl:'http://203.0.113.9:3011/v1',model:'fixture',apiKey:'private-fixture-key'}),/HTTPS/);
+  assert.equal(settings.publicValue().baseUrl,'https://api.openai.com/v1');
+  settings.save({baseUrl:'http://203.0.113.9:3011/v1',model:'fixture',apiKey:'private-fixture-key',allowHttp:true});
+  const reopened=new ApiSettings(dir,{protect,unprotect});assert.equal(reopened.publicValue().allowHttp,true);assert.equal(reopened.key(),'private-fixture-key');
+  const [profile]=reopened.saveProfile('Plaintext');reopened.clear();
+  const loaded=new ApiSettings(dir,{protect,unprotect});loaded.loadProfile(profile.id);
+  assert.equal(loaded.publicValue().baseUrl,'http://203.0.113.9:3011/v1');assert.equal(loaded.publicValue().allowHttp,true);assert.equal(loaded.key(),'private-fixture-key');
+  assert.throws(()=>loaded.save({baseUrl:'http://203.0.113.9:3011/v1',model:'fixture'}),/允许明文 HTTP/);
 });
 test('snap respects separate screens, gaps and full animation canvas, keeps horizontal position',()=>{
   const target={id:'work',x:-1920,y:1040,width:1920,top:0};

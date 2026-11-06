@@ -5,7 +5,7 @@
   status.textContent='修改后关闭设置即可自动保存并应用。';
   document.querySelector('.settings-tabs').after(status);
   const preferenceIds=['disableEventResponse','windowMode','clickAction','actionSpeed','autostart','snapMode','followClientClose','replySeconds','quotaAfterTurn','quotaMode','quotaSeconds','chatSource','autoWhisperProbability','disableRoaming','disableThrow','disableEdgeBounce','ignoreAccountTimeouts','taskBasicFeedback','taskNativeFeedback','whisperStreaming','gptFastReply'];
-  const apiIds=['apiProfileName','apiBaseUrl','apiModel','apiKey'];
+  const apiIds=['apiProfileName','apiBaseUrl','apiModel','apiKey','apiAllowHttp'];
   const proxyIds=['proxyProfileName','proxyName','proxyEndpoint','credential','envName','proxyKey','authHeader','bearer','quotaFormat','valuePath','totalPath','quotaScale','quotaUnit','clientCredential'];
   const configSelector='#pets input,#clientPets input,#categories input,[data-whisper-pet],#collision,#interval,#apiWhisperInterval';
   const mark=key=>{dirty.add(key);status.textContent='有修改待应用，关闭设置时会自动保存。';status.classList.remove('save-error');};
@@ -88,7 +88,7 @@
         plan.push({keys:['config','advanced'],run:async()=>{const saved=await api('/config','PUT',value);main=saved.main;menuSizeUpdates.clear();}});
       }
       if(dirty.has('api')){
-        const value={profileName:$('#apiProfileName').value,baseUrl:$('#apiBaseUrl').value.trim(),model:$('#apiModel').value.trim(),apiKey:enteredSecret($('#apiKey'))};
+        const value={profileName:$('#apiProfileName').value,baseUrl:$('#apiBaseUrl').value.trim(),model:$('#apiModel').value.trim(),apiKey:enteredSecret($('#apiKey')),allowHttp:$('#apiAllowHttp').checked};
         plan.push({keys:['api'],run:async()=>{fillApiSettings(await api('/api/settings','PUT',value));}});
       }
       if(dirty.has('proxy')){

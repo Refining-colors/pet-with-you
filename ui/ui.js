@@ -214,9 +214,9 @@ $('#chooseGptSource').onclick=()=>selectChatSource('gpt');$('#chooseApiSource').
 $('#chooseSourceLater').onclick=()=>{sourceChoiceDeferred=true;$('#sourceDialog').close();};
 $('#sourceDialog').addEventListener('cancel',()=>{sourceChoiceDeferred=true;});
 settingsLoads.push(loadPreferences());
-function fillApiSettings(a){window.PetSettingsAutosave?.clear('api');$('#apiProfileName').value=a.profileName||'';$('#apiBaseUrl').value=a.baseUrl;$('#apiModel').value=a.model;maskSecret($('#apiKey'),a.configured);$('#apiKey').placeholder='输入新密钥可替换已保存的密钥';}
+function fillApiSettings(a){window.PetSettingsAutosave?.clear('api');$('#apiProfileName').value=a.profileName||'';$('#apiBaseUrl').value=a.baseUrl;$('#apiModel').value=a.model;maskSecret($('#apiKey'),a.configured);$('#apiKey').placeholder='输入新密钥可替换已保存的密钥';$('#apiAllowHttp').checked=!!a.allowHttp;}
 async function loadApiSettings(){try{fillApiSettings(await api('/api/settings'));}catch(e){$('#apiResult').textContent=e.message;}}
-async function saveCurrentApi(){const a=await api('/api/settings','PUT',{profileName:$('#apiProfileName').value,baseUrl:$('#apiBaseUrl').value.trim(),model:$('#apiModel').value.trim(),apiKey:enteredSecret($('#apiKey'))});fillApiSettings(a);return a;}
+async function saveCurrentApi(){const a=await api('/api/settings','PUT',{profileName:$('#apiProfileName').value,baseUrl:$('#apiBaseUrl').value.trim(),model:$('#apiModel').value.trim(),apiKey:enteredSecret($('#apiKey')),allowHttp:$('#apiAllowHttp').checked});fillApiSettings(a);return a;}
 $('#saveApi').onclick=async()=>{try{await saveCurrentApi();$('#apiResult').textContent='当前 API 配置已保存并应用。';}catch(e){$('#apiResult').textContent=e.message;}};
 $('#clearApi').onclick=async()=>{try{fillApiSettings(await api('/api/settings','DELETE'));$('#apiResult').textContent='当前 API 地址、模型和密钥已清除；已保存列表不受影响。';}catch(e){$('#apiResult').textContent=e.message;}};
 let savedApiProfiles=[],savedProxyProfiles=[];

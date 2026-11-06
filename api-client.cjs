@@ -1,15 +1,15 @@
-const normalizeBase=(value)=>{
+const normalizeBase=(value,{allowHttp=false}={})=>{
   const u=new URL(String(value||''));
   if(u.username||u.password||u.search||u.hash)throw new Error('API 地址不能包含密钥、参数或片段');
   if(!['https:','http:'].includes(u.protocol))throw new Error('API 地址必须使用 HTTP 或 HTTPS');
-  if(u.protocol==='http:'&&!['localhost','127.0.0.1','[::1]'].includes(u.hostname))throw new Error('远程 API 地址必须使用 HTTPS');
+  if(u.protocol==='http:'&&!allowHttp&&!['localhost','127.0.0.1','[::1]'].includes(u.hostname))throw new Error('远程 API 地址必须使用 HTTPS；服务商只提供 HTTP 时，请勾选“允许明文 HTTP 接口”后再保存');
   return u.href.replace(/\/+$/,'');
 };
 class ApiSettings{
-  constructor(dir,{protect,unprotect}={}){this.store=new (require('./settings-store.cjs').SettingsStore)(dir);this.file=this.store.file;this.protect=protect;this.unprotect=unprotect;const r=this.store.get('api',{baseUrl:'https://api.openai.com/v1',model:'gpt-4o-mini'});this.value={baseUrl:r.baseUrl?normalizeBase(r.baseUrl):'',model:String(r.model||'').slice(0,120),secret:r.secret||'',profileName:String(r.profileName||'').slice(0,80)};if(!this.store.has('api'))this.store.set('api',this.value);}
-  publicValue(){return {profileName:this.value.profileName||'',baseUrl:this.value.baseUrl,model:this.value.model,configured:!!this.value.secret};}
+  constructor(dir,{protect,unprotect}={}){this.store=new (require('./settings-store.cjs').SettingsStore)(dir);this.file=this.store.file;this.protect=protect;this.unprotect=unprotect;const r=this.store.get('api',{baseUrl:'https://api.openai.com/v1',model:'gpt-4o-mini'});const allowHttp=r.allowHttp===true;this.value={baseUrl:r.baseUrl?normalizeBase(r.baseUrl,{allowHttp}):'',model:String(r.model||'').slice(0,120),secret:r.secret||'',profileName:String(r.profileName||'').slice(0,80),allowHttp};if(!this.store.has('api'))this.store.set('api',this.value);}
+  publicValue(){return {profileName:this.value.profileName||'',baseUrl:this.value.baseUrl,model:this.value.model,configured:!!this.value.secret,allowHttp:!!this.value.allowHttp};}
   clear(){
-    const next={baseUrl:'',model:'',secret:'',profileName:''};
+    const next={baseUrl:'',model:'',secret:'',profileName:'',allowHttp:false};
     this.store.set('api',next);this.value=next;return this.publicValue();
   }
   readProfiles(){
@@ -27,10 +27,10 @@ class ApiSettings{
   deleteProfile(id){return this.writeProfiles(this.readProfiles().filter(p=>p.id!==id));}
   loadProfile(id){
     const p=this.readProfiles().find(p=>p.id===id);if(!p)throw new Error('找不到保存的配置');
-    if(!p.secret){this.value={baseUrl:normalizeBase(p.baseUrl),model:String(p.model||''),profileName:p.name,secret:''};this.store.set('api',this.value);return this.publicValue();}
-    return this.save({baseUrl:p.baseUrl,model:p.model,apiKey:this.unprotect(p.secret),profileName:p.name});
+    if(!p.secret){const allowHttp=p.allowHttp===true;this.value={baseUrl:normalizeBase(p.baseUrl,{allowHttp}),model:String(p.model||''),profileName:p.name,secret:'',allowHttp};this.store.set('api',this.value);return this.publicValue();}
+    return this.save({baseUrl:p.baseUrl,model:p.model,apiKey:this.unprotect(p.secret),profileName:p.name,allowHttp:p.allowHttp===true});
   }
-  save(raw){const baseUrl=normalizeBase(raw.baseUrl);const model=String(raw.model||'').trim().slice(0,120);if(!model)throw new Error('请填写模型名称');let secret=baseUrl===this.value.baseUrl?this.value.secret:'';if(raw.apiKey){if(!this.protect)throw new Error('系统安全存储不可用');secret=this.protect(String(raw.apiKey));}if(raw.clearKey)secret='';if(!secret&&!raw.clearKey)throw new Error('首次配置或更改 API 地址后请重新填写密钥');const next={baseUrl,model,secret,profileName:String(raw.profileName??this.value.profileName??'').slice(0,80)};this.store.set('api',next);this.value=next;return this.publicValue();}
+  save(raw){const allowHttp=raw.allowHttp===true;const baseUrl=normalizeBase(raw.baseUrl,{allowHttp});const model=String(raw.model||'').trim().slice(0,120);if(!model)throw new Error('请填写模型名称');let secret=baseUrl===this.value.baseUrl?this.value.secret:'';if(raw.apiKey){if(!this.protect)throw new Error('系统安全存储不可用');secret=this.protect(String(raw.apiKey));}if(raw.clearKey)secret='';if(!secret&&!raw.clearKey)throw new Error('首次配置或更改 API 地址后请重新填写密钥');const next={baseUrl,model,secret,profileName:String(raw.profileName??this.value.profileName??'').slice(0,80),allowHttp};this.store.set('api',next);this.value=next;return this.publicValue();}
   key(){return this.value.secret?this.unprotect?.(this.value.secret):null;}
 }
 class ApiClient{
